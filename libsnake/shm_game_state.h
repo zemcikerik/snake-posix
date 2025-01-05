@@ -6,7 +6,7 @@
 
 typedef struct shm_game_state_t {
     game_state_t* game_state_;
-    char** name_;
+    char* name_;
     int fd_;
 } shm_game_state_t;
 

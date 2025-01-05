@@ -6,4 +6,7 @@
 
 DEFINE_SYN_DECLARATION(changelog_t);
 
+typedef void (*syn_changelog_for_each_fn)(const change_t* change, void* ctx);
+void syn_changelog_for_each_copy(syn_changelog_t* self, syn_changelog_for_each_fn for_each_fn, void* ctx);
+
 #endif

@@ -1,4 +1,6 @@
 #include "map.h"
+#include <stdlib.h>
+#include "../rng.h"
 
 void map_init(map_t* self, const size_t width, const size_t height) {
     self->width_ = width;
@@ -39,6 +41,10 @@ map_tile_t map_get_tile_state(const map_t* self, const coordinates_t coordinates
     return self->tiles_[coordinates.row_][coordinates.column_];
 }
 
+bool map_is_tile_empty(const map_t* self, const coordinates_t coordinates) {
+    return self->tiles_[coordinates.row_][coordinates.column_].type_ == TILE_EMPTY;
+}
+
 bool map_is_tile_dead(const map_t* self, const coordinates_t coordinates) {
     return self->tiles_[coordinates.row_][coordinates.column_].type_ == TILE_DEAD;
 }
@@ -54,10 +60,8 @@ void map_set_tile_player(map_t* self, const coordinates_t coordinates, const pla
     tile->order_ = order;
 }
 
-void map_set_tile_fruit(map_t* self, const coordinates_t coordinates, const player_id_t player) {
-    map_tile_t* tile = &self->tiles_[coordinates.row_][coordinates.column_];
-    tile->type_ = TILE_FRUIT;
-    tile->player_ = player;
+void map_set_tile_fruit(map_t* self, const coordinates_t coordinates) {
+    self->tiles_[coordinates.row_][coordinates.column_].type_ = TILE_FRUIT;
 }
 
 void map_set_tile_wall(map_t* self, const coordinates_t coordinates) {
@@ -130,4 +134,83 @@ bool map_find_player_neighbor_with_lowest_order(
 
     *out_coordinates = *best_coordinates;
     return true;
+}
+
+bool map_find_empty_neighbor(const map_t* self, const coordinates_t coordinates, coordinates_t* out_coordinates) {
+#define MAP_FIND_EMPTY_TILE(dir)   \
+    const coordinates_t coords_##dir = map_move_in_direction(self, coordinates, dir);   \
+    if (self->tiles_[coords_##dir.row_][coords_##dir.column_].type_ == TILE_EMPTY) {   \
+        *out_coordinates = coords_##dir;   \
+        return true;   \
+    }
+
+    MAP_FIND_EMPTY_TILE(DIRECTION_UP);
+    MAP_FIND_EMPTY_TILE(DIRECTION_DOWN);
+    MAP_FIND_EMPTY_TILE(DIRECTION_LEFT);
+    MAP_FIND_EMPTY_TILE(DIRECTION_RIGHT);
+
+    return false;
+}
+
+typedef struct map_search_data_t {
+    const map_t* map_;
+    map_tile_predicate_t predicate_;
+    coordinates_t* out_coordinates_;
+    bool* visited;
+} map_search_data_t;
+
+bool map_find_random_matching_predicate_search(map_search_data_t* data, const coordinates_t coordinates) {
+    const size_t index = data->map_->width_ * coordinates.row_ + coordinates.column_;
+
+    if (data->visited[index]) {
+        return false;
+    }
+
+    if (data->predicate_(data->map_, coordinates)) {
+        data->out_coordinates_->row_;
+        data->out_coordinates_->column_ = coordinates.column_;
+        return true;
+    }
+
+    data->visited[index] = true;
+    direction_t directions[4] = { DIRECTION_UP, DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT };
+
+    for (size_t i = 0; i < 4; ++i) {
+        const int from = uniform_dist(0, 4);
+        const int to = uniform_dist(0, 4);
+
+        const direction_t temp = directions[from];
+        directions[from] = directions[to];
+        directions[to] = temp;
+    }
+
+    for (size_t i = 0; i < 4; ++i) {
+        const coordinates_t moved_coordinates = map_move_in_direction(data->map_, coordinates, directions[i]);
+
+        if (map_find_random_matching_predicate_search(data, moved_coordinates)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool map_find_random_matching_predicate(
+    const map_t* self, const map_tile_predicate_t predicate, coordinates_t* out_coordinates
+) {
+    map_search_data_t search_data = {
+        .map_ = self,
+        .predicate_ = predicate,
+        .out_coordinates_ = out_coordinates,
+        .visited = calloc(self->width_ * self->height_, sizeof(bool)),
+    };
+
+    const coordinates_t start_coordinates = {
+        .row_ = uniform_dist(0,  (int) self->width_),
+        .column_ = uniform_dist(0, (int) self->height_),
+    };
+
+    const bool result = map_find_random_matching_predicate_search(&search_data, start_coordinates);
+    free(search_data.visited);
+    return result;
 }

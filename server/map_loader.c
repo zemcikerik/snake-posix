@@ -2,6 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+map_template_t* map_loader_create_empty_template(const size_t width, const size_t height) {
+    map_template_t* template = malloc(sizeof(map_template_t));
+    map_template_init(template, width, height);
+    return template;
+}
+
 map_template_t* map_loader_load_template_from_file(const char* file_path) {
     FILE* file = fopen(file_path, "r");
 
@@ -18,8 +24,7 @@ map_template_t* map_loader_load_template_from_file(const char* file_path) {
         return NULL;
     }
 
-    map_template_t* template = malloc(sizeof(map_template_t));
-    map_template_init(template, width, height);
+    map_template_t* template = map_loader_create_empty_template(width, height);
 
     for (size_t i = 0; i < MAX_MAP_HEIGHT; ++i) {
         for (size_t j = 0; j < MAX_MAP_WIDTH; ++j) {

@@ -27,8 +27,6 @@ typedef struct changelog_t {
     size_t size_;
 } changelog_t;
 
-typedef void (*changelog_for_each_fn)(changelog_t* changelog, change_t* change, void* ctx);
-
 void changelog_init(changelog_t* self);
 void changelog_clear(changelog_t* self);
 void changelog_push_tile_state_change(changelog_t* self, coordinates_t coordinates, map_tile_t map_tile);

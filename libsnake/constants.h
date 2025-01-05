@@ -1,6 +1,8 @@
 #ifndef INCLUDE_LIBSNAKE_CONSTANTS_H
 #define INCLUDE_LIBSNAKE_CONSTANTS_H
 
+#include <signal.h>
+
 #define MAX_PLAYERS 64
 
 #define MAX_MAP_WIDTH 100
@@ -9,6 +11,8 @@
 #define MAX_CHANGELOG_SIZE (MAX_MAP_WIDTH * MAX_MAP_HEIGHT + MAX_PLAYERS)
 
 #define SHM_NAME_BUFFER_SIZE 256
-const char* SHM_NAME_FORMAT = "/shm-zemcik-snake-%s";
+#define SHM_NAME_FORMAT "/shm-zemcik-snake-%s"
+
+#define SIG_LAUNCHED SIGUSR1
 
 #endif

@@ -18,12 +18,12 @@ void player_manager_destroy(player_manager_t* self) {
     }
 }
 
-player_id_t player_manager_register(player_manager_t* self) {
+bool player_manager_register(player_manager_t* self, player_id_t* out_player_id) {
     pthread_mutex_lock(&self->registration_mutex_);
 
     if (self->registered_players_count_ == MAX_PLAYERS) {
         pthread_mutex_unlock(&self->registration_mutex_);
-        return PLAYER_REGISTRATION_FULL;
+        return false;
     }
 
     for (size_t i = 0; i < MAX_PLAYERS; ++i) {
@@ -34,13 +34,14 @@ player_id_t player_manager_register(player_manager_t* self) {
             continue;
         }
 
-        player->status_ = PLAYER_PAUSED;
+        player->status_ = PLAYER_RESPAWNING;
         player->direction_ = DIRECTION_UP;
         syn_player_t_release(&self->players_[i]);
 
         self->registered_players_count_ += 1;
         pthread_mutex_unlock(&self->registration_mutex_);
-        return i;
+        *out_player_id = i;
+        return true;
     }
 
     fprintf(stderr, "player_manager_register: failed to find non-registered player.\n");

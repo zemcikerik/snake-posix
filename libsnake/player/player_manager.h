@@ -2,6 +2,7 @@
 #define INCLUDE_LIBSNAKE_PLAYER_MANAGER_H
 
 #include <pthread.h>
+#include <stdbool.h>
 
 #include "../constants.h"
 #include "syn_player.h"
@@ -19,7 +20,7 @@ typedef void (*player_manager_for_each_fn_t)(player_manager_t* manager, player_i
 void player_manager_init(player_manager_t* self);
 void player_manager_destroy(player_manager_t* self);
 
-player_id_t player_manager_register(player_manager_t* self);
+bool player_manager_register(player_manager_t* self, player_id_t* out_player_id);
 void player_manager_unregister(player_manager_t* self, player_id_t player_id);
 
 player_t player_manager_get_player_state(player_manager_t* self, player_id_t player_id);
