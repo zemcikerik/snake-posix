@@ -27,13 +27,16 @@ void ticker_observer_init(ticker_observer_t* self, ticker_t* ticker) {
     pthread_mutex_unlock(&ticker->tick_mutex_);
 }
 
-void ticker_observer_wait_for_next_tick(ticker_observer_t* self) {
+size_t ticker_observer_wait_for_next_tick(ticker_observer_t* self) {
     pthread_mutex_lock(&self->ticker_->tick_mutex_);
 
     while (self->last_tick_ == self->ticker_->tick_) {
         pthread_cond_wait(&self->ticker_->next_tick_cond_, &self->ticker_->tick_mutex_);
     }
 
+    const size_t difference = self->ticker_->tick_ - self->last_tick_;
     self->last_tick_ = self->ticker_->tick_;
     pthread_mutex_unlock(&self->ticker_->tick_mutex_);
+
+    return difference;
 }

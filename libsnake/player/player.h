@@ -11,6 +11,8 @@ typedef enum player_status_t {
     PLAYER_PAUSED,
     PLAYER_DEAD,
     PLAYER_RESPAWNING,
+    PLAYER_JOINING,
+    PLAYER_DISCONNECTING,
 } player_status_t;
 
 typedef struct player_t {

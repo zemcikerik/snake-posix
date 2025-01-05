@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include "../rng.h"
 
-void map_init(map_t* self, const size_t width, const size_t height) {
+void map_init(map_t* self, const coordinate_t width, const coordinate_t height) {
     self->width_ = width;
     self->height_ = height;
 
-    for (size_t i = 0; i < height; ++i) {
-        for (size_t j = 0; j < width; ++j) {
+    for (coordinate_t i = 0; i < height; ++i) {
+        for (coordinate_t j = 0; j < width; ++j) {
             self->tiles_[i][j].type_ = TILE_EMPTY;
         }
     }
@@ -17,23 +17,19 @@ void map_init_from_template(map_t* self, const map_template_t* template) {
     self->width_ = map_template_get_width(template);
     self->height_ = map_template_get_height(template);
 
-    for (size_t i = 0; i < self->height_; ++i) {
-        for (size_t j = 0; j < self->width_; ++j) {
-            const coordinates_t coordinates = {
-                .row_ = i,
-                .column_ = j,
-            };
-
+    for (coordinate_t i = 0; i < self->height_; ++i) {
+        for (coordinate_t j = 0; j < self->width_; ++j) {
+            const coordinates_t coordinates = { i, j };
             self->tiles_[i][j].type_ = map_template_has_wall(template, coordinates) ? TILE_WALL : TILE_EMPTY;
         }
     }
 }
 
-size_t map_get_width(const map_t* self) {
+coordinate_t map_get_width(const map_t* self) {
     return self->width_;
 }
 
-size_t map_get_height(const map_t* self) {
+coordinate_t map_get_height(const map_t* self) {
     return self->height_;
 }
 
@@ -88,7 +84,7 @@ void map_mark_player_as_dead(map_t* self, const player_id_t player, const coordi
 
 coordinates_t map_move_in_direction(const map_t* self, coordinates_t coordinates, const direction_t direction) {
     if (direction == DIRECTION_UP || direction == DIRECTION_DOWN) {
-        const size_t height = map_get_height(self);
+        const coordinate_t height = map_get_height(self);
 
         if (direction == DIRECTION_UP) {
             coordinates.row_ = coordinates.row_ == 0 ? height - 1 : coordinates.row_ - 1;
@@ -96,7 +92,7 @@ coordinates_t map_move_in_direction(const map_t* self, coordinates_t coordinates
             coordinates.row_ = coordinates.row_ == height - 1 ? 0 : coordinates.row_ + 1;
         }
     } else {
-        const size_t width = map_get_width(self);
+        const coordinate_t width = map_get_width(self);
 
         if (direction == DIRECTION_LEFT) {
             coordinates.column_ = coordinates.column_ == 0 ? width - 1 : coordinates.column_ - 1;
@@ -214,8 +210,8 @@ bool map_find_random_matching_predicate(
     };
 
     const coordinates_t start_coordinates = {
-        .row_ = uniform_dist(0,  (int) self->width_),
-        .column_ = uniform_dist(0, (int) self->height_),
+        .row_ = uniform_dist(0,  (int) self->height_),
+        .column_ = uniform_dist(0, (int) self->width_),
     };
 
     const bool result = map_find_random_matching_predicate_search(&search_data, start_coordinates);

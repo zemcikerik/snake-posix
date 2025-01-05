@@ -3,9 +3,9 @@
 
 typedef enum main_menu_result_t {
     MAIN_MENU_EXIT,
+    MAIN_MENU_PRIVATE,
     MAIN_MENU_HOST,
-    MAIN_MENU_JOIN_LOCAL,
-    MAIN_MENU_JOIN_REMOTE,
+    MAIN_MENU_JOIN,
 } main_menu_result_t;
 
 main_menu_result_t main_menu();

@@ -1,6 +1,5 @@
 #include "server.h"
 #include <stdbool.h>
-
 #include "map_loader.h"
 
 #define PUSH_CHANGELOG_TILE(coord) changelog_push_tile_state_change(data->changelog_, coord, map_get_tile_state(data->map_, coord))
@@ -14,46 +13,30 @@ typedef struct process_player_data_t {
     bool no_player_alive_;
 } process_player_data_t;
 
-void server_init(server_t* self, const map_settings_t settings, const char* room_name) {
-    if (room_name != NULL) {
-        self->shm_game_state_ = malloc(sizeof(shm_game_state_t));
-
-        if (!shm_game_state_init(self->shm_game_state_, room_name)) {
-            fprintf(stderr, "Failed to create shared game state\n");
-            exit(EXIT_FAILURE);
-        }
-
-        self->is_shm_ = true;
-    } else {
-        self->game_state_ = malloc(sizeof(game_state_t));
-        self->is_shm_ = false;
+void server_init(server_t* self, const game_settings_t* game_settings) {
+    if (!shm_game_state_init(&self->shm_game_state_, game_settings->room_name_)) {
+        fprintf(stderr, "Failed to create shared game state\n");
+        exit(EXIT_FAILURE);
     }
 
-    map_template_t* template = settings.has_path_
-        ? map_loader_load_template_from_file(settings.path_)
-        : map_loader_create_empty_template(settings.width_, settings.height_);
+    map_template_t* template = game_settings->map_path_ != NULL
+        ? map_loader_load_template_from_file(game_settings->map_path_)
+        : map_loader_create_empty_template(game_settings->width_, game_settings->height_);
 
     if (template == NULL) {
         fprintf(stderr, "Failed to load map template\n");
         exit(EXIT_FAILURE);
     }
 
-    game_state_t* game_state = server_get_game_state(self);
+    game_state_t* game_state = shm_game_state_get(&self->shm_game_state_);
     game_state_init(game_state, template);
-
     map_loader_free_template(template);
 }
 
 void server_destroy(server_t* self) {
-    game_state_t* game_state = server_get_game_state(self);
+    game_state_t* game_state = shm_game_state_get(&self->shm_game_state_);
     game_state_destroy(game_state);
-
-    if (self->is_shm_) {
-        shm_game_state_destroy(self->shm_game_state_);
-        free(self->shm_game_state_);
-    } else {
-        free(self->game_state_);
-    }
+    shm_game_state_destroy(&self->shm_game_state_);
 }
 
 void move_player_head(const process_player_data_t* data, const player_id_t player_id, const coordinates_t next_head) {
@@ -70,13 +53,18 @@ void move_player_tail(const process_player_data_t* data, const player_id_t playe
 
     if (tail_state.type_ == TILE_PLAYER && tail_state.player_ == player_id) {
         // was not overwritten in previous iteration of another snake
-        map_set_tile_empty(data->map_, tail);
-        PUSH_CHANGELOG_TILE(tail);
+        const coordinates_t head = player_data_cache_get_head(data->player_data_cache_, player_id);
+
+        if (!coordinates_equal(head, tail)) {
+            // is not the same player wrapping around
+            map_set_tile_empty(data->map_, tail);
+            PUSH_CHANGELOG_TILE(tail);
+        }
     }
 
     coordinates_t next_tail;
     if (!map_find_player_neighbor_with_lowest_order(data->map_, player_id, tail, &next_tail)) {
-        fprintf(stderr, "move_player_tail: failed to find next snake tail tile, this should not happen!\n");
+        fprintf(stderr, "move_player_tail: failed to find next snake tail tile, this should not happen\n");
         exit(EXIT_FAILURE);
     }
 
@@ -84,9 +72,10 @@ void move_player_tail(const process_player_data_t* data, const player_id_t playe
     PUSH_CHANGELOG_TILE(next_tail);
 }
 
-void kill_player(process_player_data_t* data, const player_id_t player_id) {
+void kill_player(process_player_data_t* data, const player_id_t player_id, player_t* player) {
     const coordinates_t head = player_data_cache_get_head(data->player_data_cache_, player_id);
     map_mark_player_as_dead(data->map_, player_id, head);
+    player->status_ = PLAYER_DEAD;
     data->player_died_ = true;
 }
 
@@ -95,53 +84,67 @@ bool map_tile_is_empty_predicate(const map_t* map, const coordinates_t coordinat
 }
 
 void spawn_fruit(process_player_data_t* data) {
-    coordinates_t fruit_coordinates;
+    coordinates_t fruit;
 
-    if (map_find_random_matching_predicate(data->map_, map_tile_is_empty_predicate, &fruit_coordinates)) {
-        map_set_tile_fruit(data->map_, fruit_coordinates);
-        PUSH_CHANGELOG_TILE(fruit_coordinates);
+    if (map_find_random_matching_predicate(data->map_, map_tile_is_empty_predicate, &fruit)) {
+        map_set_tile_fruit(data->map_, fruit);
+        PUSH_CHANGELOG_TILE(fruit);
     }
 }
 
 bool map_tile_is_empty_with_empty_neighbor_predicate(const map_t* map, const coordinates_t coordinates) {
-    if (!map_is_tile_empty(map, coordinates)) {
-        return false;
-    }
-    return map_find_empty_neighbor(map, coordinates, NULL, NULL);
+    return map_is_tile_empty(map, coordinates)
+        ? map_find_empty_neighbor(map, coordinates, NULL, NULL)
+        : false;
 }
 
 bool spawn_player(process_player_data_t* data, const player_id_t player_id, player_t* player) {
-    coordinates_t head_coordinates;
-    if (!map_find_random_matching_predicate(data->map_, map_tile_is_empty_with_empty_neighbor_predicate, &head_coordinates)) {
+    coordinates_t head;
+    if (!map_find_random_matching_predicate(data->map_, map_tile_is_empty_with_empty_neighbor_predicate, &head)) {
         return false;
     }
 
-    coordinates_t tail_coordinates;
+    coordinates_t tail;
     direction_t tail_direction;
-    map_find_empty_neighbor(data->map_, head_coordinates, &tail_coordinates, &tail_direction);
+    map_find_empty_neighbor(data->map_, head, &tail, &tail_direction);
     player->direction_ = direction_get_opposite(tail_direction);
 
-    map_set_tile_player(data->map_, head_coordinates, player_id, 1);
-    player_data_cache_set_head(data->player_data_cache_, player_id, head_coordinates);
-    PUSH_CHANGELOG_TILE(head_coordinates);
+    map_set_tile_player(data->map_, head, player_id, 1);
+    player_data_cache_set_head(data->player_data_cache_, player_id, head);
+    PUSH_CHANGELOG_TILE(head);
 
-    map_set_tile_player(data->map_, tail_coordinates, player_id, 0);
-    player_data_cache_set_tail(data->player_data_cache_, player_id, tail_coordinates);
-    PUSH_CHANGELOG_TILE(tail_coordinates);
+    map_set_tile_player(data->map_, tail, player_id, 0);
+    player_data_cache_set_tail(data->player_data_cache_, player_id, tail);
+    PUSH_CHANGELOG_TILE(tail);
+
+    player->status_ = PLAYER_PLAYING;
     return true;
+}
+
+bool is_player_paused(player_manager_t* manager, const player_id_t player) {
+    return player_manager_peek_player_state(manager, player).status_ == PLAYER_PAUSED;
 }
 
 void server_tick_process_player(player_manager_t* manager, const player_id_t player_id, player_t* player, void* ctx) {
     process_player_data_t* data = ctx;
 
-    if (player->status_ == PLAYER_RESPAWNING) {
+    if (player->status_ == PLAYER_RESPAWNING || player->status_ == PLAYER_JOINING) {
+        const bool should_spawn_fruit = player->status_ == PLAYER_JOINING;
+
         if (spawn_player(data, player_id, player)) {
-            spawn_fruit(data);
-            player->status_ = PLAYER_PLAYING;
+            if (should_spawn_fruit) {
+                spawn_fruit(data);
+            }
             data->no_player_alive_ = false;
         } else {
             player->status_ = PLAYER_DEAD;
         }
+        return;
+    }
+
+    if (player->status_ == PLAYER_DISCONNECTING) {
+        kill_player(data, player_id, player);
+        player->status_ = PLAYER_NOT_CONNECTED;
         return;
     }
 
@@ -174,11 +177,12 @@ void server_tick_process_player(player_manager_t* manager, const player_id_t pla
                 move_player_head(data, player_id, next_head);
                 move_player_tail(data, player_id);
             } else {
-                kill_player(data, player_id);
+                kill_player(data, player_id, player);
                 return;
             }
-        } else if (!coordinates_equal(next_head, other_tail) || next_head_state.player_ < player_id) {
-            kill_player(data, player_id);
+        } else if (!coordinates_equal(next_head, other_tail) || next_head_state.player_ < player_id
+            || is_player_paused(manager, next_head_state.player_)) {
+            kill_player(data, player_id, player);
             return;
         } else {
             const player_t other_player = player_manager_peek_player_state(manager, next_head_state.player_);
@@ -190,12 +194,12 @@ void server_tick_process_player(player_manager_t* manager, const player_id_t pla
                 move_player_head(data, player_id, next_head);
                 move_player_tail(data, player_id);
             } else {
-                kill_player(data, player_id);
+                kill_player(data, player_id, player);
                 return;
             }
         }
     } else {
-        kill_player(data, player_id);
+        kill_player(data, player_id, player);
         return;
     }
 
@@ -203,7 +207,7 @@ void server_tick_process_player(player_manager_t* manager, const player_id_t pla
 }
 
 bool server_tick(server_t* self) {
-    game_state_t* state = server_get_game_state(self);
+    game_state_t* state = shm_game_state_get(&self->shm_game_state_);
     map_t* map = syn_map_t_acquire(&state->map_);
 
     changelog_t* changelog = syn_changelog_t_acquire(&state->changelog_);
@@ -221,15 +225,12 @@ bool server_tick(server_t* self) {
     player_manager_for_each(&state->player_manager_, server_tick_process_player, &data);
 
     if (data.player_died_) {
-        const size_t width = map_get_width(map);
-        const size_t height = map_get_height(map);
+        const coordinate_t width = map_get_width(map);
+        const coordinate_t height = map_get_height(map);
 
-        for (size_t i = 0; i < height; ++i) {
-            for (size_t j = 0; j < width; ++j) {
-                const coordinates_t coordinates = {
-                    .row_ = i,
-                    .column_ = j,
-                };
+        for (coordinate_t i = 0; i < height; ++i) {
+            for (coordinate_t j = 0; j < width; ++j) {
+                const coordinates_t coordinates = { i, j };
 
                 if (map_is_tile_dead(map, coordinates)) {
                     map_set_tile_empty(map, coordinates);
@@ -250,6 +251,7 @@ bool server_tick(server_t* self) {
     return !data.no_player_alive_;
 }
 
-game_state_t* server_get_game_state(server_t* self) {
-    return self->is_shm_ ? shm_game_state_get(self->shm_game_state_) : self->game_state_;
+void server_end_game(server_t* self) {
+    game_state_t* game_state = shm_game_state_get(&self->shm_game_state_);
+    game_state->game_ended_ = true;
 }

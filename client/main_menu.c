@@ -10,11 +10,12 @@ main_menu_result_t main_menu() {
         ".----)   |   |  |\\   |  /  _____  \\  |  .  \\  |  |____\n"
         "|_______/    |__| \\__| /__/     \\__\\ |__|\\__\\ |_______|";
 
+    tb_clear();
     tb_print(0, 2, TB_GREEN, 0, logo);
     tb_print(17, 9, TB_RED, 0, "Erik Zemcik 5ZYI33");
-    tb_print(0, 12, 0, 0, "1. Host new game");
-    tb_print(0, 13, 0, 0, "2. Join local game");
-    tb_print(0, 14, 0, 0, "3. Join remote game");
+    tb_print(0, 12, 0, 0, "1. Play private game");
+    tb_print(0, 13, 0, 0, "2. Host public game");
+    tb_print(0, 14, 0, 0, "3. Join local game");
     tb_print(0, 15, 0, 0, "4. Exit");
     tb_present();
 
@@ -30,13 +31,13 @@ main_menu_result_t main_menu() {
             return MAIN_MENU_EXIT;
         }
         if (event.ch == '1') {
-            return MAIN_MENU_HOST;
+            return MAIN_MENU_PRIVATE;
         }
         if (event.ch == '2') {
-            return MAIN_MENU_JOIN_LOCAL;
+            return MAIN_MENU_HOST;
         }
         if (event.ch == '3') {
-            return MAIN_MENU_JOIN_REMOTE;
+            return MAIN_MENU_JOIN;
         }
     }
 }

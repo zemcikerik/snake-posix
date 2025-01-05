@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-map_template_t* map_loader_create_empty_template(const size_t width, const size_t height) {
+map_template_t* map_loader_create_empty_template(const coordinate_t width, const coordinate_t height) {
     map_template_t* template = malloc(sizeof(map_template_t));
     map_template_init(template, width, height);
     return template;
@@ -16,8 +16,13 @@ map_template_t* map_loader_load_template_from_file(const char* file_path) {
         return NULL;
     }
 
-    size_t width, height;
-    fscanf(file, "%zu %zu ", &width, &height);
+    coordinate_t width, height;
+    fscanf(file, "%u %u ", &width, &height);
+
+    if (width < MIN_MAP_WIDTH || height < MIN_MAP_HEIGHT) {
+        fprintf(stderr, "Dimensions of map are smaller than minimum allowed\n");
+        return NULL;
+    }
 
     if (width > MAX_MAP_WIDTH || height > MAX_MAP_HEIGHT) {
         fprintf(stderr, "Dimensions of map are bigger than maximum allowed\n");
@@ -26,17 +31,13 @@ map_template_t* map_loader_load_template_from_file(const char* file_path) {
 
     map_template_t* template = map_loader_create_empty_template(width, height);
 
-    for (size_t i = 0; i < MAX_MAP_HEIGHT; ++i) {
-        for (size_t j = 0; j < MAX_MAP_WIDTH; ++j) {
+    for (coordinate_t i = 0; i < MAX_MAP_HEIGHT; ++i) {
+        for (coordinate_t j = 0; j < MAX_MAP_WIDTH; ++j) {
             char c;
             fscanf(file, "%c ", &c);
 
             if (c == '#') {
-                const coordinates_t coordinates = {
-                    .row_ = 0,
-                    .column_ = 0
-                };
-
+                const coordinates_t coordinates = { i, j };
                 map_template_set_wall(template, coordinates);
             }
         }

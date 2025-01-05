@@ -20,6 +20,6 @@ void ticker_destroy(ticker_t* self);
 void ticker_tick(ticker_t* self);
 
 void ticker_observer_init(ticker_observer_t* self, ticker_t* ticker);
-void ticker_observer_wait_for_next_tick(ticker_observer_t* self);
+size_t ticker_observer_wait_for_next_tick(ticker_observer_t* self);
 
 #endif

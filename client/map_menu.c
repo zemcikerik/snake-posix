@@ -1,7 +1,8 @@
 #include "map_menu.h"
 #include <termbox2.h>
 
-const uintattr_t FOREGROUND_COLORS[6] = {
+#define FOREGROUND_COLORS_LENGTH 6
+const uintattr_t FOREGROUND_COLORS[FOREGROUND_COLORS_LENGTH] = {
     TB_RED,
     TB_GREEN,
     TB_YELLOW,
@@ -10,11 +11,39 @@ const uintattr_t FOREGROUND_COLORS[6] = {
     TB_CYAN,
 };
 
-#define FOREGROUND_COLORS_LENGTH 6
+void* map_menu_input_main(void* arg) {
+    map_menu_t* self = arg;
 
-void map_menu_init(map_menu_t* self, syn_map_t* map) {
+    while (true) {
+        struct tb_event event;
+        const int peek_result = tb_peek_event(&event, 5);
+
+        if (self->destroyed_) {
+            break;
+        }
+
+        if (peek_result != TB_ERR_NO_EVENT && peek_result != TB_ERR_POLL && event.type == TB_EVENT_KEY) {
+            self->callback_(self, event.key, event.ch, self->callback_ctx_);
+        }
+    }
+
+    return NULL;
+}
+
+void map_menu_init(map_menu_t* self, syn_map_t* map, const map_menu_key_callback_t callback, void* ctx) {
     self->map_ = map;
-    map_menu_redraw(self);
+    self->callback_ = callback;
+    self->callback_ctx_ = ctx;
+    self->destroyed_ = false;
+
+    pthread_mutex_init(&self->mutex_, NULL);
+    pthread_create(&self->input_thread_, NULL, map_menu_input_main, self);
+}
+
+void map_menu_destroy(map_menu_t* self) {
+    self->destroyed_ = true;
+    pthread_join(self->input_thread_, NULL);
+    pthread_mutex_destroy(&self->mutex_);
 }
 
 char map_menu_get_tile_character(const map_tile_type_t type) {
@@ -30,6 +59,10 @@ char map_menu_get_tile_character(const map_tile_type_t type) {
     }
 }
 
+void map_menu_update_begin(map_menu_t* self) {
+    pthread_mutex_lock(&self->mutex_);
+}
+
 void map_menu_update(const coordinates_t coordinates, const map_tile_t tile) {
     const char character = map_menu_get_tile_character(tile.type_);
     const uintattr_t color = tile.type_ == TILE_PLAYER
@@ -39,24 +72,23 @@ void map_menu_update(const coordinates_t coordinates, const map_tile_t tile) {
     tb_set_cell((int) coordinates.column_ + 1, (int) coordinates.row_ + 1, character, color, 0);
 }
 
-void map_menu_update_finished() {
+void map_menu_update_end(map_menu_t* self) {
     tb_present();
+    pthread_mutex_unlock(&self->mutex_);
 }
 
-void map_menu_redraw(map_menu_t* self) {
+void map_menu_redraw(map_menu_t* self, const player_status_t player_status) {
+    pthread_mutex_lock(&self->mutex_);
+    self->last_player_status_ = player_status;
     tb_clear();
 
     const map_t* map = syn_map_t_acquire(self->map_);
-    const size_t width = map_get_width(map);
-    const size_t height = map_get_height(map);
+    const coordinate_t width = map_get_width(map);
+    const coordinate_t height = map_get_height(map);
 
-    for (size_t i = 0; i < height; ++i) {
-        for (size_t j = 0; j < width; ++j) {
-            const coordinates_t coordinates = {
-                .row_ = i,
-                .column_ = j
-            };
-
+    for (coordinate_t i = 0; i < height; ++i) {
+        for (coordinate_t j = 0; j < width; ++j) {
+            const coordinates_t coordinates = { i, j };
             map_menu_update(coordinates, map_get_tile_state(map, coordinates));
         }
     }
@@ -73,6 +105,26 @@ void map_menu_redraw(map_menu_t* self) {
         tb_set_cell((int) width + 1, (int) i, '#', TB_WHITE, TB_RED);
     }
 
+    tb_print(0, (int) height + 4, 0, 0, "Controls:");
+    tb_print(1, (int) height + 5, 0, 0, "-");
+
+#define PRINT_CONTROL(key, description, index)   \
+    tb_print(1, (int) height + 5 + index, 0, 0, "-");   \
+    tb_print(3, (int) height + 5 + index, TB_YELLOW, 0, key);   \
+    tb_print(5 + strlen(key), (int) height + 5 + index, 0, 0, "- " description);   \
+
+    PRINT_CONTROL("ESC", "leave the game", 0);
+
+    if (player_status == PLAYER_DEAD) {
+        PRINT_CONTROL("R", "respawn", 1);
+    } else if (player_status == PLAYER_PLAYING) {
+        PRINT_CONTROL("arrows", "control the snake movement", 1);
+        PRINT_CONTROL("P", "pause the game", 2);
+    } else if (player_status == PLAYER_PAUSED) {
+        PRINT_CONTROL("U", "unpause the game", 1);
+    }
+
     tb_present();
+    pthread_mutex_unlock(&self->mutex_);
 }
 

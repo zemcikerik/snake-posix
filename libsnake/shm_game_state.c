@@ -23,6 +23,7 @@ void shm_close_mapped_memory(shm_game_state_t* self) {
     }
 }
 
+// todo maybe merge init logic
 bool shm_game_state_init(shm_game_state_t* self, const char* room_name) {
     self->name_ = allocate_and_format_name(room_name);
     self->fd_ = shm_open(self->name_, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);

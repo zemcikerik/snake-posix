@@ -26,17 +26,17 @@ typedef struct map_tile_t {
 
 typedef struct map_t {
     map_tile_t tiles_[MAX_MAP_HEIGHT][MAX_MAP_WIDTH];
-    size_t width_;
-    size_t height_;
+    coordinate_t width_;
+    coordinate_t height_;
 } map_t;
 
 typedef bool (*map_tile_predicate_t)(const map_t* map, coordinates_t coordinates);
 
-void map_init(map_t* self, size_t width, size_t height);
+void map_init(map_t* self, coordinate_t width, coordinate_t height);
 void map_init_from_template(map_t* self, const map_template_t* template);
 
-size_t map_get_width(const map_t* self);
-size_t map_get_height(const map_t* self);
+coordinate_t map_get_width(const map_t* self);
+coordinate_t map_get_height(const map_t* self);
 
 map_tile_t map_get_tile_state(const map_t* self, coordinates_t coordinates);
 bool map_is_tile_empty(const map_t* self, coordinates_t coordinates);

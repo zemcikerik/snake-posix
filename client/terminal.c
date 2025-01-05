@@ -51,7 +51,9 @@ bool terminal_read(const coordinates_t coordinates, char* buffer, const bool rea
         }
 
         if (event.key == TB_KEY_BACKSPACE || event.key == TB_KEY_BACKSPACE2) {
-            terminal_erase_relative_cell(coordinates, --index);
+            if (index > 0) {
+                terminal_erase_relative_cell(coordinates, --index);
+            }
             continue;
         }
 
@@ -72,27 +74,18 @@ terminal_read_result_t terminal_read_string(const coordinates_t coordinates, cha
     return terminal_read(coordinates, buffer, true) ? READ_SUCCESS : READ_CANCELLED;
 }
 
-terminal_read_result_t terminal_read_port(const coordinates_t coordinates, unsigned short* out_port) {
+terminal_read_result_t terminal_read_coordinate(const coordinates_t coordinates, coordinate_t* out_coordinate) {
     char buffer[256];
 
     if (!terminal_read(coordinates, buffer, false)) {
         return READ_CANCELLED;
     }
 
-    const int port = atoi(buffer);
-
-    if (port < 0 || port > 65535) {
-        return READ_INVALID;
-    }
-
-    *out_port = (unsigned short) port;
+    *out_coordinate = atoi(buffer);
     return true;
 }
 
-void terminal_show_error(const coordinates_t coordinates, const char* error) {
-    fprintf(stderr, "error: %s\n", error);
-    tb_print((int) coordinates.column_, (int) coordinates.row_, TB_RED, 0, error);
-
+void terminal_wait_for_key_press() {
     while (true) {
         struct tb_event event;
         tb_poll_event(&event);
@@ -101,4 +94,19 @@ void terminal_show_error(const coordinates_t coordinates, const char* error) {
             break;
         }
     }
+}
+
+void terminal_show_notif(const coordinates_t coordinates, const char* message, const uintattr_t color) {
+    tb_clear();
+    tb_print((int) coordinates.column_, (int) coordinates.row_, color, 0, message);
+    tb_present();
+    terminal_wait_for_key_press();
+}
+
+void terminal_show_info(const coordinates_t coordinates, const char* message) {
+    terminal_show_notif(coordinates, message, TB_DEFAULT);
+}
+
+void terminal_show_error(const coordinates_t coordinates, const char* message) {
+    terminal_show_notif(coordinates, message, TB_RED);
 }
