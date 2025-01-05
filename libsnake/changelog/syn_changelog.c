@@ -9,7 +9,7 @@ void syn_changelog_for_each_copy(syn_changelog_t* self, const syn_changelog_for_
 
     const size_t size = changelog->size_;
     change_t* changes = malloc(size * sizeof(change_t));
-    memcpy(changelog, changelog->changes_, size * sizeof(change_t));
+    memcpy(changes, changelog->changes_, size * sizeof(change_t));
 
     syn_changelog_t_release(self);
 

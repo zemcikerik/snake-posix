@@ -3,6 +3,8 @@
 
 #include "map_loader.h"
 
+#define PUSH_CHANGELOG_TILE(coord) changelog_push_tile_state_change(data->changelog_, coord, map_get_tile_state(data->map_, coord))
+
 typedef struct process_player_data_t {
     changelog_t* changelog_;
     map_t* map_;
@@ -59,7 +61,7 @@ void move_player_head(const process_player_data_t* data, const player_id_t playe
     const map_tile_t head_state = map_get_tile_state(data->map_, head);
     map_set_tile_player(data->map_, next_head, player_id, head_state.order_ + 1);
     player_data_cache_set_head(data->player_data_cache_, player_id, next_head);
-    changelog_push_tile_state_change(data->changelog_, next_head, map_get_tile_state(data->map_, next_head));
+    PUSH_CHANGELOG_TILE(next_head);
 }
 
 void move_player_tail(const process_player_data_t* data, const player_id_t player_id) {
@@ -69,6 +71,7 @@ void move_player_tail(const process_player_data_t* data, const player_id_t playe
     if (tail_state.type_ == TILE_PLAYER && tail_state.player_ == player_id) {
         // was not overwritten in previous iteration of another snake
         map_set_tile_empty(data->map_, tail);
+        PUSH_CHANGELOG_TILE(tail);
     }
 
     coordinates_t next_tail;
@@ -78,7 +81,7 @@ void move_player_tail(const process_player_data_t* data, const player_id_t playe
     }
 
     player_data_cache_set_tail(data->player_data_cache_, player_id, next_tail);
-    changelog_push_tile_state_change(data->changelog_, next_tail, map_get_tile_state(data->map_, next_tail));
+    PUSH_CHANGELOG_TILE(next_tail);
 }
 
 void kill_player(process_player_data_t* data, const player_id_t player_id) {
@@ -96,35 +99,35 @@ void spawn_fruit(process_player_data_t* data) {
 
     if (map_find_random_matching_predicate(data->map_, map_tile_is_empty_predicate, &fruit_coordinates)) {
         map_set_tile_fruit(data->map_, fruit_coordinates);
-        changelog_push_tile_state_change(data->changelog_, fruit_coordinates, map_get_tile_state(data->map_, fruit_coordinates));
+        PUSH_CHANGELOG_TILE(fruit_coordinates);
     }
 }
 
 bool map_tile_is_empty_with_empty_neighbor_predicate(const map_t* map, const coordinates_t coordinates) {
-    if (map_is_tile_empty(map, coordinates)) {
+    if (!map_is_tile_empty(map, coordinates)) {
         return false;
     }
-
-    coordinates_t empty_coordinates;
-    return map_find_empty_neighbor(map, coordinates, &empty_coordinates);
+    return map_find_empty_neighbor(map, coordinates, NULL, NULL);
 }
 
-bool spawn_player(process_player_data_t* data, const player_id_t player_id) {
+bool spawn_player(process_player_data_t* data, const player_id_t player_id, player_t* player) {
     coordinates_t head_coordinates;
     if (!map_find_random_matching_predicate(data->map_, map_tile_is_empty_with_empty_neighbor_predicate, &head_coordinates)) {
         return false;
     }
 
     coordinates_t tail_coordinates;
-    map_find_empty_neighbor(data->map_, head_coordinates, &tail_coordinates);
+    direction_t tail_direction;
+    map_find_empty_neighbor(data->map_, head_coordinates, &tail_coordinates, &tail_direction);
+    player->direction_ = direction_get_opposite(tail_direction);
 
     map_set_tile_player(data->map_, head_coordinates, player_id, 1);
     player_data_cache_set_head(data->player_data_cache_, player_id, head_coordinates);
-    changelog_push_tile_state_change(data->changelog_, head_coordinates, map_get_tile_state(data->map_, head_coordinates));
+    PUSH_CHANGELOG_TILE(head_coordinates);
 
     map_set_tile_player(data->map_, tail_coordinates, player_id, 0);
     player_data_cache_set_tail(data->player_data_cache_, player_id, tail_coordinates);
-    changelog_push_tile_state_change(data->changelog_, tail_coordinates, map_get_tile_state(data->map_, tail_coordinates));
+    PUSH_CHANGELOG_TILE(tail_coordinates);
     return true;
 }
 
@@ -132,7 +135,7 @@ void server_tick_process_player(player_manager_t* manager, const player_id_t pla
     process_player_data_t* data = ctx;
 
     if (player->status_ == PLAYER_RESPAWNING) {
-        if (spawn_player(data, player_id)) {
+        if (spawn_player(data, player_id, player)) {
             spawn_fruit(data);
             player->status_ = PLAYER_PLAYING;
             data->no_player_alive_ = false;
@@ -203,8 +206,6 @@ bool server_tick(server_t* self) {
     game_state_t* state = server_get_game_state(self);
     map_t* map = syn_map_t_acquire(&state->map_);
 
-    fprintf(stderr, "3");
-
     changelog_t* changelog = syn_changelog_t_acquire(&state->changelog_);
     changelog_clear(changelog);
 
@@ -217,9 +218,7 @@ bool server_tick(server_t* self) {
         .no_player_alive_ = true,
     };
 
-    fprintf(stderr, "2");
     player_manager_for_each(&state->player_manager_, server_tick_process_player, &data);
-    fprintf(stderr, "1");
 
     if (data.player_died_) {
         const size_t width = map_get_width(map);
@@ -244,13 +243,10 @@ bool server_tick(server_t* self) {
         spawn_fruit(&data);
     }
 
-    fprintf(stderr, "0");
-
     syn_changelog_t_release(&state->changelog_);
     syn_map_t_release(&state->map_);
     ticker_tick(&state->ticker_);
 
-    fprintf(stderr, "tick");
     return !data.no_player_alive_;
 }
 

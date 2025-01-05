@@ -136,11 +136,19 @@ bool map_find_player_neighbor_with_lowest_order(
     return true;
 }
 
-bool map_find_empty_neighbor(const map_t* self, const coordinates_t coordinates, coordinates_t* out_coordinates) {
+bool map_find_empty_neighbor(
+    const map_t* self, const coordinates_t coordinates,
+    coordinates_t* out_coordinates, direction_t* out_direction
+) {
 #define MAP_FIND_EMPTY_TILE(dir)   \
     const coordinates_t coords_##dir = map_move_in_direction(self, coordinates, dir);   \
     if (self->tiles_[coords_##dir.row_][coords_##dir.column_].type_ == TILE_EMPTY) {   \
-        *out_coordinates = coords_##dir;   \
+        if (out_coordinates != NULL) {   \
+            *out_coordinates = coords_##dir;   \
+        }   \
+        if (out_direction != NULL) {   \
+            *out_direction = dir;    \
+        }   \
         return true;   \
     }
 
@@ -167,7 +175,7 @@ bool map_find_random_matching_predicate_search(map_search_data_t* data, const co
     }
 
     if (data->predicate_(data->map_, coordinates)) {
-        data->out_coordinates_->row_;
+        data->out_coordinates_->row_ = coordinates.row_;
         data->out_coordinates_->column_ = coordinates.column_;
         return true;
     }

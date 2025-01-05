@@ -56,7 +56,10 @@ bool map_find_player_neighbor_with_lowest_order(
     const map_t* self, player_id_t player,
     coordinates_t coordinates, coordinates_t* out_coordinates
 );
-bool map_find_empty_neighbor(const map_t* self, coordinates_t coordinates, coordinates_t* out_coordinates);
+bool map_find_empty_neighbor(
+    const map_t* self, coordinates_t coordinates,
+    coordinates_t* out_coordinates, direction_t* out_direction
+);
 bool map_find_random_matching_predicate(const map_t* self, map_tile_predicate_t predicate, coordinates_t* out_coordinates);
 
 #endif

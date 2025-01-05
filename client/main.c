@@ -67,6 +67,40 @@ void update_map_menu_from_change(const change_t* change, void*) {
     map_menu_update(data->coordinates_, data->tile_data_);
 }
 
+void join_local_game(const char* room_name) {
+    shm_game_state_t game_state;
+    if (!shm_game_state_open(&game_state, room_name)) {
+        coordinates_t coordinates = { 0, 0 };
+        terminal_show_error(coordinates, "Failed to open shared memory with server!");
+        return;
+    }
+
+    game_state_t* state = shm_game_state_get(&game_state);
+    player_id_t player_id;
+
+    if (!player_manager_register(&state->player_manager_, &player_id)) {
+        coordinates_t coordinates = { 0, 0 };
+        terminal_show_error(coordinates, "Game room is full!");
+        shm_game_state_close(&game_state);
+        return;
+    }
+
+    map_menu_t map_menu;
+    map_menu_init(&map_menu, &state->map_);
+    map_menu_redraw(&map_menu);
+
+    ticker_observer_t observer;
+    ticker_observer_init(&observer, &state->ticker_);
+
+    while (true) {
+        syn_changelog_for_each_copy(&state->changelog_, update_map_menu_from_change, NULL);
+        map_menu_update_finished();
+        ticker_observer_wait_for_next_tick(&observer);
+    }
+
+    shm_game_state_close(&game_state);
+}
+
 int main() {
     signal(SIG_LAUNCHED, on_server_process_launched);
     tb_init();
@@ -84,49 +118,14 @@ int main() {
                 continue;
             }
 
-            // ReSharper disable once CppDFAConstantConditions
-            if (!launch_server_process(host_info)) {
+            if (launch_server_process(host_info)) {
+                join_local_game(host_info->room_name_);
+            } else {
                 coordinates_t coordinates = { 0, 0 };
                 terminal_show_error(coordinates, "Failed to launch server process!");
-                host_menu_free_result(host_info);
-                continue;
             }
 
-            // ReSharper disable once CppDFAUnreachableCode
-            shm_game_state_t game_state;
-            if (!shm_game_state_open(&game_state, host_info->room_name_)) {
-                coordinates_t coordinates = { 0, 0 };
-                terminal_show_error(coordinates, "Failed to open shared memory with server!");
-                host_menu_free_result(host_info);
-                continue;
-            }
-
-            game_state_t* state = shm_game_state_get(&game_state);
             host_menu_free_result(host_info);
-            player_id_t player_id;
-
-            if (!player_manager_register(&state->player_manager_, &player_id)) {
-                coordinates_t coordinates = { 0, 0 };
-                terminal_show_error(coordinates, "Game room is full!");
-                shm_game_state_close(&game_state);
-                continue;
-            }
-
-            map_menu_t map_menu;
-            map_menu_init(&map_menu, &state->map_);
-            map_menu_redraw(&map_menu);
-
-            ticker_observer_t observer;
-            ticker_observer_init(&observer, &state->ticker_);
-
-            // todo fix bug with spawning
-            while (true) {
-                syn_changelog_for_each_copy(&state->changelog_, update_map_menu_from_change, NULL);
-                map_menu_update_finished();
-                ticker_observer_wait_for_next_tick(&observer);
-            }
-
-            shm_game_state_close(&game_state);
         }
     }
 
