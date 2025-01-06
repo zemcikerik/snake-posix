@@ -13,10 +13,10 @@ typedef struct process_player_data_t {
     bool no_player_alive_;
 } process_player_data_t;
 
-void server_init(server_t* self, const game_settings_t* game_settings) {
+bool server_init(server_t* self, const game_settings_t* game_settings) {
     if (!shm_game_state_init(&self->shm_game_state_, game_settings->room_name_)) {
         fprintf(stderr, "Failed to create shared game state\n");
-        exit(EXIT_FAILURE);
+        return false;
     }
 
     map_template_t* template = game_settings->map_path_ != NULL
@@ -25,12 +25,14 @@ void server_init(server_t* self, const game_settings_t* game_settings) {
 
     if (template == NULL) {
         fprintf(stderr, "Failed to load map template\n");
-        exit(EXIT_FAILURE);
+        shm_game_state_destroy(&self->shm_game_state_);
+        return false;
     }
 
     game_state_t* game_state = shm_game_state_get(&self->shm_game_state_);
     game_state_init(game_state, template);
     map_loader_free_template(template);
+    return true;
 }
 
 void server_destroy(server_t* self) {
@@ -39,7 +41,7 @@ void server_destroy(server_t* self) {
     shm_game_state_destroy(&self->shm_game_state_);
 }
 
-void move_player_head(const process_player_data_t* data, const player_id_t player_id, const coordinates_t next_head) {
+void move_player_head(process_player_data_t* data, const player_id_t player_id, const coordinates_t next_head) {
     const coordinates_t head = player_data_cache_get_head(data->player_data_cache_, player_id);
     const map_tile_t head_state = map_get_tile_state(data->map_, head);
     map_set_tile_player(data->map_, next_head, player_id, head_state.order_ + 1);
@@ -47,7 +49,7 @@ void move_player_head(const process_player_data_t* data, const player_id_t playe
     PUSH_CHANGELOG_TILE(next_head);
 }
 
-void move_player_tail(const process_player_data_t* data, const player_id_t player_id) {
+void move_player_tail(process_player_data_t* data, const player_id_t player_id) {
     const coordinates_t tail = player_data_cache_get_tail(data->player_data_cache_, player_id);
     const map_tile_t tail_state = map_get_tile_state(data->map_, tail);
 

@@ -35,15 +35,12 @@ void map_menu_init(map_menu_t* self, syn_map_t* map, const map_menu_key_callback
     self->callback_ = callback;
     self->callback_ctx_ = ctx;
     self->destroyed_ = false;
-
-    pthread_mutex_init(&self->mutex_, NULL);
     pthread_create(&self->input_thread_, NULL, map_menu_input_main, self);
 }
 
 void map_menu_destroy(map_menu_t* self) {
     self->destroyed_ = true;
     pthread_join(self->input_thread_, NULL);
-    pthread_mutex_destroy(&self->mutex_);
 }
 
 char map_menu_get_tile_character(const map_tile_type_t type) {
@@ -59,10 +56,6 @@ char map_menu_get_tile_character(const map_tile_type_t type) {
     }
 }
 
-void map_menu_update_begin(map_menu_t* self) {
-    pthread_mutex_lock(&self->mutex_);
-}
-
 void map_menu_update(const coordinates_t coordinates, const map_tile_t tile) {
     const char character = map_menu_get_tile_character(tile.type_);
     const uintattr_t color = tile.type_ == TILE_PLAYER
@@ -72,14 +65,11 @@ void map_menu_update(const coordinates_t coordinates, const map_tile_t tile) {
     tb_set_cell((int) coordinates.column_ + 1, (int) coordinates.row_ + 1, character, color, 0);
 }
 
-void map_menu_update_end(map_menu_t* self) {
+void map_menu_update_end() {
     tb_present();
-    pthread_mutex_unlock(&self->mutex_);
 }
 
 void map_menu_redraw(map_menu_t* self, const player_status_t player_status) {
-    pthread_mutex_lock(&self->mutex_);
-    self->last_player_status_ = player_status;
     tb_clear();
 
     const map_t* map = syn_map_t_acquire(self->map_);
@@ -125,6 +115,5 @@ void map_menu_redraw(map_menu_t* self, const player_status_t player_status) {
     }
 
     tb_present();
-    pthread_mutex_unlock(&self->mutex_);
 }
 

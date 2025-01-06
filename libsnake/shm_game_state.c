@@ -11,6 +11,17 @@ char* allocate_and_format_name(const char* room_name) {
     return buffer;
 }
 
+game_state_t* shm_map_memory(const int fd) {
+    game_state_t* game_state = mmap(NULL, sizeof(game_state_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    if (game_state == MAP_FAILED) {
+        perror("Failed to map shared memory");
+        exit(EXIT_FAILURE);
+    }
+
+    return game_state;
+}
+
 void shm_close_mapped_memory(shm_game_state_t* self) {
     if (munmap(self->game_state_, sizeof(game_state_t)) == -1) {
         perror("Failed to unmap shared memory");
@@ -38,13 +49,7 @@ bool shm_game_state_init(shm_game_state_t* self, const char* room_name) {
         exit(EXIT_FAILURE);
     }
 
-    self->game_state_ = mmap(NULL, sizeof(game_state_t), PROT_READ | PROT_WRITE, MAP_SHARED, self->fd_, 0);
-
-    if (self->game_state_ == MAP_FAILED) {
-        perror("Failed to map shared memory");
-        exit(EXIT_FAILURE);
-    }
-
+    self->game_state_ = shm_map_memory(self->fd_);
     return true;
 }
 
@@ -68,13 +73,7 @@ bool shm_game_state_open(shm_game_state_t* self, const char* room_name) {
         return false;
     }
 
-    self->game_state_ = mmap(NULL, sizeof(game_state_t), PROT_READ | PROT_WRITE,MAP_SHARED, self->fd_, 0);
-
-    if (self->game_state_ == MAP_FAILED) {
-        perror("Failed to map shared memory");
-        exit(EXIT_FAILURE);
-    }
-
+    self->game_state_ = shm_map_memory(self->fd_);
     return true;
 }
 

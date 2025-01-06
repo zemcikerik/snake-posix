@@ -58,7 +58,7 @@ bool terminal_read(const coordinates_t coordinates, char* buffer, const bool rea
         }
 
         if ((event.ch >= '0' && event.ch <= '9') ||
-            (read_letters && ((event.ch >= 'a' && event.ch <= 'z') || (event.ch >= 'A' && event.ch <= 'Z')))) {
+            (read_letters && ((event.ch >= 'a' && event.ch <= 'z') || (event.ch >= 'A' && event.ch <= 'Z') || event.ch == '.') || event.ch == '-')) {
             const char character = (char) event.ch;
             terminal_update_relative_cell(coordinates, character, index);
             buffer[index++] = character;
@@ -96,17 +96,17 @@ void terminal_wait_for_key_press() {
     }
 }
 
-void terminal_show_notif(const coordinates_t coordinates, const char* message, const uintattr_t color) {
+void terminal_show_notif(const char* message, const uintattr_t color) {
     tb_clear();
-    tb_print((int) coordinates.column_, (int) coordinates.row_, color, 0, message);
+    tb_print(0, 0, color, 0, message);
     tb_present();
     terminal_wait_for_key_press();
 }
 
-void terminal_show_info(const coordinates_t coordinates, const char* message) {
-    terminal_show_notif(coordinates, message, TB_DEFAULT);
+void terminal_show_info(const char* message) {
+    terminal_show_notif(message, TB_DEFAULT);
 }
 
-void terminal_show_error(const coordinates_t coordinates, const char* message) {
-    terminal_show_notif(coordinates, message, TB_RED);
+void terminal_show_error(const char* message) {
+    terminal_show_notif(message, TB_RED);
 }

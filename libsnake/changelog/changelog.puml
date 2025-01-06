@@ -1,0 +1,50 @@
+@startuml
+
+skinparam ranksep 50
+skinparam linetype ortho
+
+enum change_type_t {
++ CHANGE_TILE_STATE
+}
+
+struct coordinates_t
+struct map_tile_t
+
+struct change_tile_state_data_t {
++ coordinates_: coordinates_t
++ tile_data_: map_tile_t
+}
+change_tile_state_data_t *-- coordinates_t
+change_tile_state_data_t *-- map_tile_t
+
+struct change_data_t <<union>> {
++ change_tile_state_data_: change_tile_state_data_t
+}
+change_data_t *-- change_tile_state_data_t
+
+struct change_t {
++ type_: change_type_t
++ data_: change_data_t
+}
+change_t *-- change_data_t
+
+class changelog_t {
+- changes_: change_t[MAX_CHANGELOG_SIZE]
+- size_: size_t
+
+{static} + changelog_init(self: changelog_t*): void
+{static} + changelog_clear(self: changelog_t*): void
+{static} + changelog_push_tile_state_change(self: changelog_t*, coordinates: coordinates_t, map_tile: map_tile_t): void
+}
+changelog_t *-- change_t
+
+class syn_T<T>
+
+class syn_changelog_t {
+{static} + syn_changelog_for_each_copy(self: syn_changelog_t*, for_each_fn: syn_changelog_for_each_fn, ctx: void*): void
+}
+syn_changelog_t --|> syn_T
+changelog_t --* syn_changelog_t
+changelog_t <.. syn_changelog_t : <<friend>>
+
+@enduml

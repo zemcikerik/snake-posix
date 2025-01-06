@@ -34,8 +34,8 @@ game_settings_t* host_menu(const host_menu_options_t options) {
             return NULL;
         }
     } else {
-        const int ids[2] = { uniform_dist(0, RAND_MAX), uniform_dist(0, RAND_MAX) };
-        sprintf(buffer, "--private-%d-%d", ids[0], ids[1]);
+        const int ids[2] = { rng_uniform_dist(0, RAND_MAX), rng_uniform_dist(0, RAND_MAX) };
+        sprintf(buffer, "--private_%d_%d", ids[0], ids[1]);
     }
 
     char* room_name = malloc(strlen(buffer) + 1);

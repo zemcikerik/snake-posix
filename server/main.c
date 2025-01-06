@@ -28,9 +28,14 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    init_rng();
+    rng_init();
     server_t server;
-    server_init(&server, settings);
+
+    if (!server_init(&server, settings)) {
+        argument_parser_free(settings);
+        return 2;
+    }
+
     signal(SIGINT, interrupt_received);
 
     if (settings->parent_ != SETTING_NO_PARENT) {
@@ -47,7 +52,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (interrupted) {
-            break; // todo
+            break;
         }
 
         last_tick = get_current_time_in_ms();

@@ -10,7 +10,7 @@ typedef struct server_t {
     player_data_cache_t player_data_cache_;
 } server_t;
 
-void server_init(server_t* self, const game_settings_t* game_settings);
+bool server_init(server_t* self, const game_settings_t* game_settings);
 void server_destroy(server_t* self);
 bool server_tick(server_t* self);
 void server_end_game(server_t* self);

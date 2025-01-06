@@ -31,8 +31,8 @@ map_template_t* map_loader_load_template_from_file(const char* file_path) {
 
     map_template_t* template = map_loader_create_empty_template(width, height);
 
-    for (coordinate_t i = 0; i < MAX_MAP_HEIGHT; ++i) {
-        for (coordinate_t j = 0; j < MAX_MAP_WIDTH; ++j) {
+    for (coordinate_t i = 0; i < height; ++i) {
+        for (coordinate_t j = 0; j < width; ++j) {
             char c;
             fscanf(file, "%c ", &c);
 

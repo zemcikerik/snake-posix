@@ -1,0 +1,115 @@
+@startuml
+
+skinparam ranksep 50
+skinparam linetype ortho
+
+enum direction_t {
++ DIRECTION_UP
++ DIRECTION_LEFT
++ DIRECTION_DOWN
++ DIRECTION_RIGHT
+
+{static} + direction_get_opposite(direction: direction_t): direction_t
+}
+
+class syn_T<T> {
+- obj_: T
+- mutex_: pthread_mutex_t
+
+{static} + syn_T_init(self: syn_T*): void
+{static} + syn_T_destroy(self: syn_T*): void
+{static} + syn_T_acquire(self: syn_T*): T*
+{static} + syn_T_try_acquire(self: syn_T*): T*
+{static} + syn_T_release(self: syn_T*): void
+{static} + syn_T_peek(self: syn_T*): T*
+}
+
+struct coordinates_t {
++ row_: coordinate_t
++ column: coordinate_t
+
+{static} + coordinates_equal(lhs: coordinates_t, rhs: coordinates_t): bool
+}
+
+struct game_settings_t {
++ room_name_: char*
++ map_path_: char*
++ width_: coordinate_t
++ height_: coordinate_t
++ parent_: pid_t
+}
+
+class syn_changelog_t
+syn_T <|-- syn_changelog_t
+
+class syn_map_t
+syn_T <|-- syn_map_t
+
+class player_manager_t
+
+struct game_state_t {
++ changelog_: syn_changelog_t
++ map_: syn_map_t
++ player_manager_: player_manager_t
++ ticker_: ticker_t
++ game_ended_: atomic_bool
+
+{static} + game_state_init(self: game_state_t*, map_template: const map_template_t*): void
+{static} + game_state_destroy(self: game_state_t*): void
+}
+syn_changelog_t --* game_state_t
+syn_map_t --* game_state_t
+player_manager_t --* game_state_t
+ticker_t --* game_state_t
+
+class shm_game_state_t {
+- game_state_: game_state_t*
+- name_: char*
+- fd_: int
+
+{static} + shm_game_state_init(self: shm_game_state_t*, room_name: const char*): bool
+{static} + shm_game_state_destroy(self: shm_game_state_t*): void
+{static} + shm_game_state_open(self: shm_game_state_t*, room_name: const char*): bool
+{static} + shm_game_state_close(self: shm_game_state_t*): void
+{static} + shm_game_state_get(self: shm_game_state_t*): game_state_t*
+{static} - allocate_and_format_name(room_name: const char*): char*
+{static} - shm_map_memory(fd: int): game_state_t*
+{static} - shm_close_mapped_memory(self: shm_game_state_t*): void
+}
+game_state_t <-- shm_game_state_t
+
+class rng_t <<utility>> {
+{static} + rng_init(): void
+{static} + rng_uniform_dist(min: int, maxExclusive: int): int
+}
+
+class syn_helpers_t <<utility>> {
+{static} + init_pthread_shared_mutex(mutex: pthread_mutex_t*): void
+{static} + init_pthread_shared_cond(cond: pthread_cond_t*): void
+}
+
+class ticker_t {
+- tick_: size_t
+- tick_mutex_: pthread_mutex_t
+- next_tick_cond_: pthread_cond_t
+
+{static} + ticker_init(self: ticker_t*): void
+{static} + ticker_destroy(self: ticker_t*): void
+{static} + ticker_tick(self: ticker_t*): void
+}
+
+class ticker_observer_t {
+- ticker_: ticker_t*
+- last_tick_: size_t
+
+{static} + ticker_observer_init(self: ticker_observer_t*, ticker: ticker_t*): void
+{static} + ticker_observer_wait_for_next_tick(self: ticker_observer_t*): size_t
+}
+ticker_observer_t --> ticker_t
+ticker_observer_t ..> ticker_t : <<friend>>
+
+direction_t -[hidden]- coordinates_t
+coordinates_t -[hidden]- game_settings_t
+rng_t -[hidden]- syn_helpers_t
+
+@enduml

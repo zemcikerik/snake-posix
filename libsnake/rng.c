@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-void init_rng() {
+void rng_init() {
     srand48(time(NULL));
 }
 
-int uniform_dist(const int min, const int maxExclusive) {
+int rng_uniform_dist(const int min, const int maxExclusive) {
     return (int) floor(drand48() * (maxExclusive - min) + min);
 }

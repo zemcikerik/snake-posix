@@ -180,8 +180,8 @@ bool map_find_random_matching_predicate_search(map_search_data_t* data, const co
     direction_t directions[4] = { DIRECTION_UP, DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT };
 
     for (size_t i = 0; i < 4; ++i) {
-        const int from = uniform_dist(0, 4);
-        const int to = uniform_dist(0, 4);
+        const int from = rng_uniform_dist(0, 4);
+        const int to = rng_uniform_dist(0, 4);
 
         const direction_t temp = directions[from];
         directions[from] = directions[to];
@@ -210,8 +210,8 @@ bool map_find_random_matching_predicate(
     };
 
     const coordinates_t start_coordinates = {
-        .row_ = uniform_dist(0,  (int) self->height_),
-        .column_ = uniform_dist(0, (int) self->width_),
+        .row_ = rng_uniform_dist(0,  (int) self->height_),
+        .column_ = rng_uniform_dist(0, (int) self->width_),
     };
 
     const bool result = map_find_random_matching_predicate_search(&search_data, start_coordinates);

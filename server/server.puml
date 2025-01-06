@@ -1,0 +1,82 @@
+@startuml
+
+skinparam ranksep 50
+skinparam linetype ortho
+
+class ArgParser
+note right of ArgParser: From the Args library
+
+class argument_parser_t <<utility>> {
+{static} + argument_parser_parse(argc: int, argv: char*[]): game_settings_t*
+{static} + argument_parser_free(settings: game_settings_t*): void
+{static} - argument_parser_get_str_copy(parser: ArgParser*, key: const char*): char*
+}
+
+argument_parser_t ..> ArgParser : <<uses>>
+
+class map_template_t
+
+class map_loader_t <<utility>> {
+{static} + map_loader_create_empty_template(width: coordinate_t, height: coordinate_t): map_template_t*
+{static} + map_loader_load_template_from_file(file_path: const char*): map_template_t*
+{static} + map_loader_free_template(template: map_template_t*): void
+}
+map_loader_t ..> map_template_t : <<uses>>
+
+struct coordinates_t
+
+class player_data_cache_t {
+- head_: coordinates_t[MAX_PLAYERS]
+- tail_: coordinates_t[MAX_PLAYERS]
+
+{static} + player_data_cache_get_head(self: const player_data_cache_t*, player: player_id_t): coordinates_t
+{static} + player_data_cache_get_tail(self: const player_data_cache_t*, player: player_id_t): coordinates_t
+{static} + player_data_cache_set_head(self: player_data_cache_t*, player: player_id_t, coordinates: coordinates_t): void
+{static} + player_data_cache_set_tail(self: player_data_cache_t*, player: player_id_t, coordinates: coordinates_t): void
+}
+player_data_cache_t *-- coordinates_t
+
+struct game_settings_t
+class shm_game_state_t
+
+class server_t {
+- shm_game_state_: shm_game_state_t
+- player_data_cache_: player_data_cache_t
+
+{static} + server_init(self: server_t*, game_settings: const game_settings_t*): bool
+{static} + server_destroy(self: server_t*): void
+{static} + server_tick(self: server_t*): bool
+{static} + server_end_game(self: server_t*): void
+{static} - move_player_head(data: process_player_data_t*, player_id: player_id_t, next_head: coordinates_t): void
+{static} - move_player_tail(data: process_player_data_t*, player_id: player_id_t): void
+{static} - kill_player(data: process_player_data_t*, player_id: player_id_t, player: player_t*): void
+{static} - spawn_fruit(data: process_player_data_t*): void
+{static} - spawn_player(data: process_player_data_t*, player_id: player_id_t, player: player_t*): bool
+{static} - map_tile_is_empty_predicate(map: const map_t*, coordinates: coordinates_t): bool
+{static} - map_tile_is_empty_with_empty_neighbor_predicate(map: const map_t*, coordinates: coordinates_t): bool
+{static} - is_player_paused(manager: player_manager_t*, player: player_id_t): bool
+{static} - server_tick_process_player(manager: player_manager_t*, player_id: player_id_t, player: player_t*, ctx: void*): void
+}
+server_t ..> game_settings_t : <<uses>>
+server_t *-- player_data_cache_t
+server_t *-- shm_game_state_t
+
+class changelog_t
+class map_t
+
+struct process_player_data_t {
++ changelog_: changelog_t*
++ map_: map_t*
++ player_data_cache_: player_data_cache_t*
++ fruits_eaten_: size_t
++ player_died_: bool
++ no_player_alive_: bool
+}
+process_player_data_t --> changelog_t
+process_player_data_t --> map_t
+process_player_data_t --> player_data_cache_t
+server_t ..> process_player_data_t : <<uses>>
+
+
+
+@enduml

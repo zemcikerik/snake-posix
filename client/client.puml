@@ -1,0 +1,94 @@
+@startuml
+
+skinparam ranksep 50
+skinparam linetype ortho
+left to right direction
+
+enum terminal_read_result_t {
++ READ_CANCELLED
++ READ_SUCCESS
+}
+
+struct coordinates_t
+
+class terminal_t <<utility>> {
+{static} + terminal_read_string(coordinates: coordinates_t, buffer: char*): terminal_read_result_t
+{static} + terminal_read_coordinate(coordinates: coordinates_t, out_coordinate: coordinate_t*): terminal_read_result_t
+{static} + terminal_show_info(message: const char*): void
+{static} + terminal_show_error(message: const char*): void
+{static} - terminal_update_relative_cell(coordinates: coordinates_t, character: char, index: size_t): void
+{static} - terminal_erase_relative_cell(coordinates: coordinates_t, index: size_t): void
+{static} - terminal_read(coordinates: coordinates_t, buffer: char*, read_letters: bool): bool
+{static} - terminal_wait_for_key_press(): void
+{static} - terminal_show_notif(message: const char*, color: uintattr_t): void
+}
+terminal_t ..> coordinates_t : <<uses>>
+
+enum host_menu_options_t {
++ HOST_MENU_PROMPT_FOR_ROOM_NAME
++ HOST_MENU_PRIVATE_ROOM_NAME
+}
+
+class host_menu_t {
+{static} + host_menu(options: host_menu_options_t): game_settings_t*
+{static} + host_menu_free_result(result: game_settings_t*): void
+{static} - host_menu_clamp_coordinate(min: coordinate_t, val: coordinate_t, max: coordinate_t): coordinate_t
+}
+
+enum main_menu_result_t {
++ MAIN_MENU_EXIT
++ MAIN_MENU_PRIVATE
++ MAIN_MENU_HOST
++ MAIN_MENU_JOIN
+}
+
+class main_menu_t {
+{static} + main_menu(): main_menu_result_t
+}
+
+class connect_menu_t {
+{static} + connect_menu(): char*
+{static} + connect_menu_free_result(result: char*): void
+}
+
+class syn_map_t
+
+class map_menu_t {
+- map_: syn_map_t*
+- input_thread_: pthread_t
+- callback_: map_menu_key_callback_t
+- callback_ctx_: void*
+- destroyed_: atomic_bool
+{static} - FOREGROUND_COLORS: uintattr_t[FOREGROUND_COLORS_LENGTH]
+
+{static} + map_menu_init(self: map_menu_t*, map: syn_map_t*, callback: map_menu_key_callback_t, ctx: void*): void
+{static} + map_menu_destroy(self: map_menu_t*): void
+{static} + map_menu_update(coordinates: coordinates_t, tile: map_tile_t): void
+{static} + map_menu_update_end(): void
+{static} + map_menu_redraw(self: map_menu_t*, player_status: player_status_t): void
+{static} - map_menu_input_main(arg: void*): void*
+{static} - map_menu_get_tile_character(type: map_tile_type_t): char
+}
+map_menu_t --> syn_map_t
+
+struct game_settings_t
+
+class server_launcher_t {
+{static} - launched_signal_received: atomic_bool
+
+{static} + server_launcher_init(): void
+{static} + server_launcher_launch_server_process(settings: game_settings_t*): bool
+{static} - server_launcher_on_launched_signal_received(ignored: const int): void
+}
+server_launcher_t ..> game_settings_t : <<uses>>
+
+class player_manager_t
+
+struct key_press_context_t {
++ player_manager_: player_manager_t*
++ exit_: atomic_bool*
++ player_id_: player_id_t
+}
+key_press_context_t --> player_manager_t
+
+@enduml

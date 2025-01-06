@@ -1,0 +1,45 @@
+@startuml
+
+skinparam ranksep 50
+skinparam linetype ortho
+
+enum player_status_t {
++ PLAYER_NOT_CONNECTED
++ PLAYER_PLAYING
++ PLAYER_PAUSED
++ PLAYER_DEAD
++ PLAYER_RESPAWNING
++ PLAYER_JOINING
++ PLAYER_DISCONNECTING
+}
+
+struct player_t {
++ status_: player_status_t
++ direction_: direction_t
+}
+
+class syn_T<T>
+class syn_player_t
+syn_T <|-- syn_player_t
+syn_player_t *-- player_t
+
+class player_manager_t {
+- players_: syn_player_t[MAX_PLAYERS]
+
+{static} + player_manager_init(self: player_manager_t*): void
+{static} + player_manager_destroy(self: player_manager_t*): void
+{static} + player_manager_register(self: player_manager_t*, out_player_id: player_id_t*): bool
+{static} + player_manager_unregister(self: player_manager_t*, player_id: player_id_t): void
+{static} + player_manager_pause(self: player_manager_t*, player_id: player_id_t): void
+{static} + player_manager_unpause(self: player_manager_t*, player_id: player_id_t): void
+{static} + player_manager_respawn(self: player_manager_t*, player_id: player_id_t): void
+{static} + player_manager_get_player_state(self: player_manager_t*, player_id: player_id_t): player_t
+{static} + player_manager_peek_player_state(self: player_manager_t*, player_id: player_id_t): player_t
+{static} + player_manager_get_player_status(self: player_manager_t*, player_id: player_id_t): player_status_t
+{static} + player_manager_set_player_direction(self: player_manager_t*, player_id: player_id_t, direction: direction_t): void
+{static} + player_manager_for_each(self: player_manager_t*, for_each_fn: player_manager_for_each_fn_t, ctx: void*): void
+}
+
+player_manager_t *-- syn_player_t
+
+@enduml
