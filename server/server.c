@@ -13,10 +13,29 @@ typedef struct process_player_data_t {
     bool no_player_alive_;
 } process_player_data_t;
 
+void server_destroy_game_state_memory(server_t* self) {
+    if (self->shm_game_state_ != NULL) {
+        shm_game_state_destroy(self->shm_game_state_);
+        free(self->shm_game_state_);
+    } else {
+        free(self->game_state_);
+    }
+}
+
 bool server_init(server_t* self, const game_settings_t* game_settings) {
-    if (!shm_game_state_init(&self->shm_game_state_, game_settings->room_name_)) {
-        fprintf(stderr, "Failed to create shared game state\n");
-        return false;
+    if (game_settings->room_name_ != NULL) {
+        self->shm_game_state_ = malloc(sizeof(shm_game_state_t));
+
+        if (!shm_game_state_init(self->shm_game_state_, game_settings->room_name_)) {
+            fprintf(stderr, "Failed to create shared game state\n");
+            free(self->shm_game_state_);
+            return false;
+        }
+
+        self->game_state_ = shm_game_state_get(self->shm_game_state_);
+    } else {
+        self->game_state_ = malloc(sizeof(game_state_t));
+        self->shm_game_state_ = NULL;
     }
 
     map_template_t* template = game_settings->map_path_ != NULL
@@ -25,20 +44,18 @@ bool server_init(server_t* self, const game_settings_t* game_settings) {
 
     if (template == NULL) {
         fprintf(stderr, "Failed to load map template\n");
-        shm_game_state_destroy(&self->shm_game_state_);
+        server_destroy_game_state_memory(self);
         return false;
     }
 
-    game_state_t* game_state = shm_game_state_get(&self->shm_game_state_);
-    game_state_init(game_state, template);
+    game_state_init(self->game_state_, template);
     map_loader_free_template(template);
     return true;
 }
 
 void server_destroy(server_t* self) {
-    game_state_t* game_state = shm_game_state_get(&self->shm_game_state_);
-    game_state_destroy(game_state);
-    shm_game_state_destroy(&self->shm_game_state_);
+    game_state_destroy(self->game_state_);
+    server_destroy_game_state_memory(self);
 }
 
 void move_player_head(process_player_data_t* data, const player_id_t player_id, const coordinates_t next_head) {
@@ -209,7 +226,7 @@ void server_tick_process_player(player_manager_t* manager, const player_id_t pla
 }
 
 bool server_tick(server_t* self) {
-    game_state_t* state = shm_game_state_get(&self->shm_game_state_);
+    game_state_t* state = self->game_state_;
     map_t* map = syn_map_t_acquire(&state->map_);
 
     changelog_t* changelog = syn_changelog_t_acquire(&state->changelog_);
@@ -254,6 +271,5 @@ bool server_tick(server_t* self) {
 }
 
 void server_end_game(server_t* self) {
-    game_state_t* game_state = shm_game_state_get(&self->shm_game_state_);
-    game_state->game_ended_ = true;
+    self->game_state_->game_ended_ = true;
 }

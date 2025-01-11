@@ -24,14 +24,15 @@ game_settings_t* argument_parser_parse(int argc, char* argv[]) {
     ap_add_str_opt(parser, "map m", "");
     ap_add_int_opt(parser, "width w", 0);
     ap_add_int_opt(parser, "height h", 0);
+    ap_add_int_opt(parser, "port p", 0);
 
     if (!ap_parse(parser, argc, argv)) {
         ap_free(parser);
         return NULL;
     }
 
-    if (!ap_found(parser, "name")) {
-        fprintf(stderr, "Room name is required\n");
+    if (!ap_found(parser, "name") && !ap_found(parser, "port")) {
+        fprintf(stderr, "IPC to use is required\n");
         ap_free(parser);
         return NULL;
     }
@@ -48,6 +49,7 @@ game_settings_t* argument_parser_parse(int argc, char* argv[]) {
     settings->width_ = ap_get_int_value(parser, "width");
     settings->height_ = ap_get_int_value(parser, "height");
     settings->parent_ = ap_get_int_value(parser, "parent");
+    settings->port_ = ap_get_int_value(parser, "port");
 
     ap_free(parser);
     return settings;

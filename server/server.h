@@ -6,7 +6,8 @@
 #include "../libsnake/shm_game_state.h"
 
 typedef struct server_t {
-    shm_game_state_t shm_game_state_;
+    game_state_t* game_state_;
+    shm_game_state_t* shm_game_state_;
     player_data_cache_t player_data_cache_;
 } server_t;
 

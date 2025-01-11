@@ -3,6 +3,7 @@
 void player_manager_init(player_manager_t* self) {
     for (size_t i = 0; i < MAX_PLAYERS; ++i) {
         syn_player_t_init(&self->players_[i]);
+        syn_player_t_peek(&self->players_[i])->status_ = PLAYER_NOT_CONNECTED;
     }
 }
 
