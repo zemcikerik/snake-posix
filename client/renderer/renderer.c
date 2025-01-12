@@ -51,13 +51,13 @@ void renderer_redraw_screen(syn_map_t* syn_map, const player_status_t status) {
     syn_map_t_release(syn_map);
 
     for (size_t i = 0; i < width + 2; ++i) {
-        tb_set_cell((int) i, 0, '#', TB_WHITE, TB_RED);
-        tb_set_cell((int) i, (int) height + 1, '#', TB_WHITE, TB_RED);
+        tb_set_cell((int) i, 0, ' ', TB_WHITE, TB_BLUE);
+        tb_set_cell((int) i, (int) height + 1, ' ', TB_WHITE, TB_BLUE);
     }
 
     for (size_t i = 1; i < height + 1; ++i) {
-        tb_set_cell(0, (int) i, '#', TB_WHITE, TB_RED);
-        tb_set_cell((int) width + 1, (int) i, '#', TB_WHITE, TB_RED);
+        tb_set_cell(0, (int) i, ' ', TB_WHITE, TB_BLUE);
+        tb_set_cell((int) width + 1, (int) i, ' ', TB_WHITE, TB_BLUE);
     }
 
     tb_print(0, (int) height + 4, 0, 0, "Controls:");
