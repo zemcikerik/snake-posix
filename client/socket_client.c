@@ -4,8 +4,8 @@
 
 #include "input.h"
 #include "terminal.h"
-#include "../libsnake/socket.h"
-#include "../libsnake/socket_message.h"
+#include "../libsnake/socket/socket.h"
+#include "../libsnake/socket/socket_message.h"
 #include "../libsnake/map/syn_map.h"
 #include "../libsnake/player/syn_player.h"
 #include "renderer/renderer.h"

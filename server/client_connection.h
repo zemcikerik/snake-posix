@@ -3,7 +3,7 @@
 
 #include <stdatomic.h>
 #include "../libsnake/game_state.h"
-#include "../libsnake/socket.h"
+#include "../libsnake/socket/socket.h"
 
 typedef struct client_connection_t {
     pthread_t receive_thread_;

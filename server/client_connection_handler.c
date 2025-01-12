@@ -1,6 +1,6 @@
 #include "client_connection_handler.h"
 #include <unistd.h>
-#include "../libsnake/socket_message.h"
+#include "../libsnake/socket/socket_message.h"
 
 bool client_connection_handler_verify_magic_bytes(socket_t* socket) {
     socket_message_t message;

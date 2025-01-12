@@ -2,7 +2,7 @@
 #define INCLUDE_LIBSNAKE_SOCKET_MESSAGE_H
 
 #include <stdbool.h>
-#include "map/map.h"
+#include "../map/map.h"
 #include "socket.h"
 
 typedef enum socket_message_type_t {

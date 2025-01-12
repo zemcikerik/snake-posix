@@ -1,10 +1,9 @@
 #include "host_menu.h"
 #include <stdlib.h>
 #include <termbox2.h>
-
-#include "terminal.h"
-#include "../libsnake/constants.h"
-#include "../libsnake/rng.h"
+#include "../terminal.h"
+#include "../../libsnake/constants.h"
+#include "../../libsnake/rng.h"
 
 coordinate_t host_menu_clamp_coordinate(const coordinate_t min, const coordinate_t val, const coordinate_t max) {
     if (val < min) {
@@ -35,7 +34,7 @@ game_settings_t* host_menu(const host_menu_options_t options) {
         }
     } else {
         const int ids[2] = { rng_uniform_dist(0, RAND_MAX), rng_uniform_dist(0, RAND_MAX) };
-        sprintf(buffer, "--private_%d_%d", ids[0], ids[1]);
+        sprintf(buffer, "$--private_%d_%d", ids[0], ids[1]);
     }
 
     char* room_name = NULL;

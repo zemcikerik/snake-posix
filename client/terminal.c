@@ -29,7 +29,7 @@ void terminal_erase_relative_cell(const coordinates_t coordinates, const size_t 
     tb_present();
 }
 
-bool terminal_read(const coordinates_t coordinates, char* buffer, const bool read_letters, const bool read_special_host) {
+bool terminal_read(const coordinates_t coordinates, char* buffer, const bool read_letters) {
     tb_set_cursor((int) coordinates.column_, (int) coordinates.row_);
     tb_present();
     size_t index = 0;
@@ -58,8 +58,8 @@ bool terminal_read(const coordinates_t coordinates, char* buffer, const bool rea
         }
 
         if ((event.ch >= '0' && event.ch <= '9') ||
-            (read_letters && ((event.ch >= 'a' && event.ch <= 'z') || (event.ch >= 'A' && event.ch <= 'Z') || event.ch == '.') || event.ch == '-') ||
-            (read_special_host && (event.ch == '.' || event.ch == '-'))) {
+            (read_letters && ((event.ch >= 'a' && event.ch <= 'z') || (event.ch >= 'A' && event.ch <= 'Z')
+                || event.ch == '.' || event.ch == '-' || event.ch == '.') || event.ch == '_')) {
             const char character = (char) event.ch;
             terminal_update_relative_cell(coordinates, character, index);
             buffer[index++] = character;
@@ -72,13 +72,13 @@ bool terminal_read(const coordinates_t coordinates, char* buffer, const bool rea
 }
 
 terminal_read_result_t terminal_read_string(const coordinates_t coordinates, char* buffer) {
-    return terminal_read(coordinates, buffer, true, false) ? READ_SUCCESS : READ_CANCELLED;
+    return terminal_read(coordinates, buffer, true) ? READ_SUCCESS : READ_CANCELLED;
 }
 
 terminal_read_result_t terminal_read_coordinate(const coordinates_t coordinates, coordinate_t* out_coordinate) {
     char buffer[256];
 
-    if (!terminal_read(coordinates, buffer, false, false)) {
+    if (!terminal_read(coordinates, buffer, false)) {
         return READ_CANCELLED;
     }
 
@@ -87,13 +87,13 @@ terminal_read_result_t terminal_read_coordinate(const coordinates_t coordinates,
 }
 
 terminal_read_result_t terminal_read_hostname(const coordinates_t coordinates, char* buffer) {
-    return terminal_read(coordinates, buffer, true, true) ? READ_SUCCESS : READ_CANCELLED;
+    return terminal_read(coordinates, buffer, true) ? READ_SUCCESS : READ_CANCELLED;
 }
 
 terminal_read_result_t terminal_read_port(const coordinates_t coordinates, unsigned short* out_port) {
     char buffer[256];
 
-    if (!terminal_read(coordinates, buffer, false, false)) {
+    if (!terminal_read(coordinates, buffer, false)) {
         return READ_CANCELLED;
     }
     if (buffer[0] == '\0') {

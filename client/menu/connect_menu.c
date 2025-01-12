@@ -1,8 +1,8 @@
 #include "connect_menu.h"
 #include <stdlib.h>
 #include <termbox2.h>
-#include "terminal.h"
-#include "../libsnake/coordinates.h"
+#include "../terminal.h"
+#include "../../libsnake/coordinates.h"
 
 bool connect_menu_local(char* out_room_name) {
     tb_clear();

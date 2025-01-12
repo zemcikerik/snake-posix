@@ -1,14 +1,14 @@
 #define TB_IMPL
 #include <termbox2.h>
-#include "connect_menu.h"
-#include "host_menu.h"
 #include "input.h"
-#include "main_menu.h"
 #include "server_launcher.h"
 #include "shm_client.h"
 #include "socket_client.h"
 #include "terminal.h"
 #include "../libsnake/rng.h"
+#include "menu/connect_menu.h"
+#include "menu/host_menu.h"
+#include "menu/main_menu.h"
 
 int main() {
     tb_init();

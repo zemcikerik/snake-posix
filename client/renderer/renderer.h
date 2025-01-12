@@ -4,7 +4,7 @@
 #include <stdatomic.h>
 #include <pthread.h>
 #include "renderer_command_queue.h"
-#include "../libsnake/map/syn_map.h"
+#include "../../libsnake/map/syn_map.h"
 
 typedef struct renderer_t {
     pthread_t thread_;

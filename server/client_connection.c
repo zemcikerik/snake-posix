@@ -1,6 +1,6 @@
 #include "client_connection.h"
 #include <unistd.h>
-#include "../libsnake/socket_message.h"
+#include "../libsnake/socket/socket_message.h"
 
 #define SHUTDOWN_IF_FAIL(statement) if (!statement) client_connection_shutdown(self)
 

@@ -1,5 +1,5 @@
 #include "main_menu.h"
-#include "../libtermbox2/termbox2.h"
+#include "../../libtermbox2/termbox2.h"
 
 main_menu_result_t main_menu() {
     const char* logo =

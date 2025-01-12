@@ -1,5 +1,4 @@
 #include "input.h"
-
 #include <stdbool.h>
 #include <termbox2.h>
 #include "../libsnake/constants.h"
