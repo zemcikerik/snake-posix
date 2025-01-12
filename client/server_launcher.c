@@ -12,7 +12,7 @@ void server_launcher_on_launched_signal_received(const int) {
     launched_signal_received = true;
 }
 
-void server_launcher_init() {
+void server_launcher_init_sig() {
     signal(SIG_LAUNCHED, server_launcher_on_launched_signal_received);
 }
 
@@ -23,7 +23,7 @@ bool server_launcher_launch_server_process(game_settings_t* settings) {
 
     if (pid == 0) {
         size_t index = 0;
-        char* args[11];
+        char* args[13];
 
 #define DECLARE_INT_ARG_BUFFER(name) char name##_buffer[16]
 #define PUSH_INT_ARG(name, flag, arg)   \
@@ -32,11 +32,20 @@ bool server_launcher_launch_server_process(game_settings_t* settings) {
         args[index++] = name##_buffer;
 
         args[index++] = "./server";
-        args[index++] = "-n";
-        args[index++] = settings->room_name_;
 
+        if (settings->room_name_ != NULL) {
+            args[index++] = "-n";
+            args[index++] = settings->room_name_;
+        }
+
+        DECLARE_INT_ARG_BUFFER(port);
         DECLARE_INT_ARG_BUFFER(width);
         DECLARE_INT_ARG_BUFFER(height);
+
+        if (settings->port_ != SETTING_NO_PORT) {
+            const int port = (int) settings->port_;
+            PUSH_INT_ARG(port, "-p", port);
+        }
 
         if (settings->map_path_) {
             args[index++] = "-m";

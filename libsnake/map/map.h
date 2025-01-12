@@ -38,7 +38,6 @@ void map_init_from_template(map_t* self, const map_template_t* template);
 coordinate_t map_get_width(const map_t* self);
 coordinate_t map_get_height(const map_t* self);
 
-map_tile_t map_get_tile_state(const map_t* self, coordinates_t coordinates);
 bool map_is_tile_empty(const map_t* self, coordinates_t coordinates);
 bool map_is_tile_dead(const map_t* self, coordinates_t coordinates);
 
@@ -47,6 +46,9 @@ void map_set_tile_player(map_t* self, coordinates_t coordinates, player_id_t pla
 void map_set_tile_fruit(map_t* self, coordinates_t coordinates);
 void map_set_tile_wall(map_t* self, coordinates_t coordinates);
 void map_set_tile_dead(map_t* self, coordinates_t coordinates);
+
+map_tile_t map_get_tile_state(const map_t* self, coordinates_t coordinates);
+void map_set_tile_state(map_t* self, coordinates_t coordinates, map_tile_t tile);
 
 void map_mark_player_as_dead(map_t* self, player_id_t player, coordinates_t start_coordinates);
 

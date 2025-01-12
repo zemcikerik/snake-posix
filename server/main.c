@@ -1,5 +1,7 @@
+#include <signal.h>
 #include <stdatomic.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include "argument_parser.h"
@@ -21,6 +23,9 @@ void interrupt_received(const int) {
     interrupted = true;
 }
 
+void noop(const int) {
+}
+
 int main(int argc, char* argv[]) {
     game_settings_t* settings = argument_parser_parse(argc, argv);
 
@@ -29,14 +34,20 @@ int main(int argc, char* argv[]) {
     }
 
     rng_init();
+    signal(SIGINT, interrupt_received);
+
+    struct sigaction destroyed_sigaction;
+    destroyed_sigaction.sa_handler = noop;
+    destroyed_sigaction.sa_flags = 0;
+    sigemptyset(&destroyed_sigaction.sa_mask);
+    sigaction(SIG_DESTROYED, &destroyed_sigaction, NULL);
+
     server_t server;
 
     if (!server_init(&server, settings)) {
         argument_parser_free(settings);
         return 2;
     }
-
-    signal(SIGINT, interrupt_received);
 
     if (settings->parent_ != SETTING_NO_PARENT) {
         kill(settings->parent_, SIG_LAUNCHED);

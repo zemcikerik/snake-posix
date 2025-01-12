@@ -16,7 +16,8 @@ main_menu_result_t main_menu() {
     tb_print(0, 12, 0, 0, "1. Play private game");
     tb_print(0, 13, 0, 0, "2. Host public game");
     tb_print(0, 14, 0, 0, "3. Join local game");
-    tb_print(0, 15, 0, 0, "4. Exit");
+    tb_print(0, 15, 0, 0, "4. Join remote game");
+    tb_print(0, 16, 0, 0, "5. Exit");
     tb_present();
 
     while (1) {
@@ -27,7 +28,7 @@ main_menu_result_t main_menu() {
             continue;
         }
 
-        if (event.key == TB_KEY_ESC || event.key == TB_KEY_CTRL_C || event.ch == '4') {
+        if (event.key == TB_KEY_ESC || event.ch == '5') {
             return MAIN_MENU_EXIT;
         }
         if (event.ch == '1') {
@@ -37,7 +38,10 @@ main_menu_result_t main_menu() {
             return MAIN_MENU_HOST;
         }
         if (event.ch == '3') {
-            return MAIN_MENU_JOIN;
+            return MAIN_MENU_JOIN_LOCAL;
+        }
+        if (event.ch == '4') {
+            return MAIN_MENU_JOIN_REMOTE;
         }
     }
 }

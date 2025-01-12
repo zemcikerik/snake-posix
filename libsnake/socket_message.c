@@ -10,15 +10,12 @@ void socket_message_init_magic_bytes(socket_message_t* self, const char* magic_b
     memcpy(self->data_.magic_bytes_->bytes, magic_bytes, sizeof(char[4]));
 }
 
-void socket_message_game_full(socket_message_t* self) {
+void socket_message_init_game_full(socket_message_t* self) {
     self->type_ = SOCKET_MESSAGE_GAME_FULL;
 }
 
-void socket_message_init_connected(socket_message_t* self, const player_id_t player_id, const direction_t direction) {
+void socket_message_init_connected(socket_message_t* self) {
     self->type_ = SOCKET_MESSAGE_CONNECTED;
-    self->data_.connected_ = malloc(sizeof(socket_message_connected_data_t));
-    self->data_.connected_->player_id_ = player_id;
-    self->data_.connected_->direction_ = direction;
 }
 
 void socket_message_init_map(socket_message_t* self, const map_t* map) {
@@ -48,10 +45,11 @@ void socket_message_init_tile_change(socket_message_t* self, const coordinate_t 
     self->data_.tile_change_->tile_ = tile;
 }
 
-void socket_message_init_player_status(socket_message_t* self, const player_status_t player_status) {
-    self->type_ = SOCKET_MESSAGE_PLAYER_STATUS;
-    self->data_.player_status_ = malloc(sizeof(socket_message_player_status_t));
-    self->data_.player_status_->status_ = player_status;
+void socket_message_init_player_state(socket_message_t* self, const player_status_t status, const direction_t direction) {
+    self->type_ = SOCKET_MESSAGE_PLAYER_STATE;
+    self->data_.player_state_ = malloc(sizeof(socket_message_player_state_t));
+    self->data_.player_state_->status_ = status;
+    self->data_.player_state_->direction_ = direction;
 }
 
 void socket_message_init_direction(socket_message_t* self, const direction_t direction) {
@@ -69,13 +67,21 @@ void socket_message_init_game_end(socket_message_t* self) {
     self->type_ = SOCKET_MESSAGE_GAME_END;
 }
 
+void socket_message_init_pause(socket_message_t* self) {
+    self->type_ = SOCKET_MESSAGE_PAUSE;
+}
+
+void socket_message_init_unpause(socket_message_t* self) {
+    self->type_ = SOCKET_MESSAGE_UNPAUSE;
+}
+
+void socket_message_init_respawn(socket_message_t* self) {
+    self->type_ = SOCKET_MESSAGE_RESPAWN;
+}
+
 size_t socket_message_calculate_data_buffer_size(const socket_message_t* self) {
     if (self->type_ == SOCKET_MESSAGE_MAGIC_BYTES) {
         return sizeof(char[4]);
-    }
-
-    if (self->type_ == SOCKET_MESSAGE_CONNECTED) {
-        return sizeof(player_id_t) + 1;
     }
 
     if (self->type_ == SOCKET_MESSAGE_MAP) {
@@ -92,7 +98,11 @@ size_t socket_message_calculate_data_buffer_size(const socket_message_t* self) {
         return dimensions_size + tile_size;
     }
 
-    if (self->type_ == SOCKET_MESSAGE_PLAYER_STATUS || self->type_ == SOCKET_MESSAGE_DIRECTION) {
+    if (self->type_ == SOCKET_MESSAGE_PLAYER_STATE) {
+        return 2;
+    }
+
+    if (self->type_ == SOCKET_MESSAGE_DIRECTION) {
         return 1;
     }
 
@@ -150,8 +160,9 @@ void socket_message_serialize_tile_change(const socket_message_tile_change_t* da
     socket_message_serialize_map_tile(&data->tile_, buffer);
 }
 
-void socket_message_serialize_player_status(const socket_message_player_status_t* data, char* buffer) {
+void socket_message_serialize_player_state(const socket_message_player_state_t* data, char* buffer) {
     buffer[0] = (char) data->status_;
+    buffer[1] = (char) data->direction_;
 }
 
 void socket_message_serialize_direction(const socket_message_direction_t* data, char* buffer) {
@@ -161,18 +172,17 @@ void socket_message_serialize_direction(const socket_message_direction_t* data, 
 char* socket_message_serialize(const socket_message_t* self, size_t* out_length) {
     *out_length = 1 + socket_message_calculate_data_buffer_size(self);
     char* buffer = malloc(*out_length);
+    memset(buffer, 0x69, *out_length);
     buffer[0] = (char) self->type_;
 
     if (self->type_ == SOCKET_MESSAGE_MAGIC_BYTES) {
         socket_message_serialize_magic_bytes(self->data_.magic_bytes_, buffer + 1);
-    } else if (self->type_ == SOCKET_MESSAGE_CONNECTED) {
-        socket_message_serialize_connected(self->data_.connected_, buffer + 1);
     } else if (self->type_ == SOCKET_MESSAGE_MAP) {
         socket_message_serialize_map(self->data_.map_, buffer + 1);
     } else if (self->type_ == SOCKET_MESSAGE_TILE_CHANGE) {
         socket_message_serialize_tile_change(self->data_.tile_change_, buffer + 1);
-    } else if (self->type_ == SOCKET_MESSAGE_PLAYER_STATUS) {
-        socket_message_serialize_player_status(self->data_.player_status_, buffer + 1);
+    } else if (self->type_ == SOCKET_MESSAGE_PLAYER_STATE) {
+        socket_message_serialize_player_state(self->data_.player_state_, buffer + 1);
     } else if (self->type_ == SOCKET_MESSAGE_DIRECTION) {
         socket_message_serialize_direction(self->data_.direction_, buffer + 1);
     }
@@ -199,21 +209,6 @@ bool socket_message_deserialize_magic_bytes_from_socket(socket_t* socket, socket
     }
 
     out_data->magic_bytes_ = data;
-    return true;
-}
-
-bool socket_message_deserialize_connected_from_socket(socket_t* socket, socket_message_data_t* out_data) {
-    char buffer[sizeof(uint16_t) + 1];
-
-    if (!socket_read(socket, buffer, sizeof(uint16_t) + 1)) {
-        return false;
-    }
-
-    socket_message_connected_data_t* data = malloc(sizeof(socket_message_connected_data_t));
-    data->player_id_ = le16toh(*(uint16_t*) buffer);
-    data->direction_ = (direction_t) buffer[sizeof(uint16_t)];
-
-    out_data->connected_ = data;
     return true;
 }
 
@@ -282,16 +277,17 @@ bool socket_message_deserialize_tile_change_from_socket(socket_t* socket, socket
     return true;
 }
 
-bool socket_message_deserialize_player_status_from_socket(socket_t* socket, socket_message_data_t* out_data) {
-    char raw_status;
-    if (!socket_read(socket, &raw_status, 1)) {
+bool socket_message_deserialize_player_state_from_socket(socket_t* socket, socket_message_data_t* out_data) {
+    char buffer[2];
+    if (!socket_read(socket, buffer, 2)) {
         return false;
     }
 
-    socket_message_player_status_t* data = malloc(sizeof(socket_message_player_status_t));
-    data->status_ = (player_status_t) raw_status;
+    socket_message_player_state_t* data = malloc(sizeof(socket_message_player_state_t));
+    data->status_ = (player_status_t) buffer[0];
+    data->direction_ = (direction_t) buffer[1];
 
-    out_data->player_status_ = data;
+    out_data->player_state_ = data;
     return true;
 }
 
@@ -316,15 +312,12 @@ bool socket_message_deserialize_from_socket(socket_t* socket, socket_message_t* 
 
     out_message->type_ = (socket_message_type_t) raw_type;
 
-    if (out_message->type_ > SOCKET_MESSAGE_GAME_END) {
+    if (out_message->type_ > SOCKET_MESSAGE_RESPAWN) {
         return false;
     }
 
     if (out_message->type_ == SOCKET_MESSAGE_MAGIC_BYTES) {
         return socket_message_deserialize_magic_bytes_from_socket(socket, &out_message->data_);
-    }
-    if (out_message->type_ == SOCKET_MESSAGE_CONNECTED) {
-        return socket_message_deserialize_connected_from_socket(socket, &out_message->data_);
     }
     if (out_message->type_ == SOCKET_MESSAGE_MAP) {
         return socket_message_deserialize_map_from_socket(socket, &out_message->data_);
@@ -332,8 +325,8 @@ bool socket_message_deserialize_from_socket(socket_t* socket, socket_message_t* 
     if (out_message->type_ == SOCKET_MESSAGE_TILE_CHANGE) {
         return socket_message_deserialize_tile_change_from_socket(socket, &out_message->data_);
     }
-    if (out_message->type_ == SOCKET_MESSAGE_PLAYER_STATUS) {
-        return socket_message_deserialize_player_status_from_socket(socket, &out_message->data_);
+    if (out_message->type_ == SOCKET_MESSAGE_PLAYER_STATE) {
+        return socket_message_deserialize_player_state_from_socket(socket, &out_message->data_);
     }
     if (out_message->type_ == SOCKET_MESSAGE_DIRECTION) {
         return socket_message_deserialize_direction_from_socket(socket, &out_message->data_);
@@ -342,18 +335,33 @@ bool socket_message_deserialize_from_socket(socket_t* socket, socket_message_t* 
     return true;
 }
 
+void socket_message_deserialize_to_map(const socket_message_t* self, map_t* map) {
+    if (self->type_ != SOCKET_MESSAGE_MAP) {
+        return;
+    }
+
+    socket_message_map_data_t* data = self->data_.map_;
+    map_init(map, data->width_, data->height_);
+
+    size_t index = 0;
+    for (size_t i = 0; i < data->height_; ++i) {
+        for (size_t j = 0; j < data->width_; ++j) {
+            coordinates_t coordinates = { i, j };
+            map_set_tile_state(map, coordinates, data->tiles_[index++]);
+        }
+    }
+}
+
 void socket_message_destroy(socket_message_t* self) {
     if (self->type_ == SOCKET_MESSAGE_MAGIC_BYTES) {
         free(self->data_.magic_bytes_);
-    } else if (self->type_ == SOCKET_MESSAGE_CONNECTED) {
-        free(self->data_.connected_);
     } else if (self->type_ == SOCKET_MESSAGE_MAP) {
         free(self->data_.map_->tiles_);
         free(self->data_.map_);
     } else if (self->type_ == SOCKET_MESSAGE_TILE_CHANGE) {
         free(self->data_.tile_change_);
-    } else if (self->type_ == SOCKET_MESSAGE_PLAYER_STATUS) {
-        free(self->data_.player_status_);
+    } else if (self->type_ == SOCKET_MESSAGE_PLAYER_STATE) {
+        free(self->data_.player_state_);
     } else if (self->type_ == SOCKET_MESSAGE_DIRECTION) {
         free(self->data_.direction_);
     }

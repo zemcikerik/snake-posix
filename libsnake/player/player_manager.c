@@ -23,6 +23,7 @@ bool player_manager_register(player_manager_t* self, player_id_t* out_player_id)
         }
 
         player->status_ = PLAYER_JOINING;
+        player->direction_ = DIRECTION_UP;
         syn_player_t_release(&self->players_[i]);
         *out_player_id = i;
         return true;

@@ -9,6 +9,7 @@ typedef struct client_connection_t {
     pthread_t receive_thread_;
     pthread_t send_thread_;
     game_state_t* game_state_;
+    player_id_t player_id_;
     socket_t socket_;
     atomic_bool shutdown_;
 } client_connection_t;

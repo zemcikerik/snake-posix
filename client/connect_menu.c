@@ -4,23 +4,41 @@
 #include "terminal.h"
 #include "../libsnake/coordinates.h"
 
-char* connect_menu() {
+bool connect_menu_local(char* out_room_name) {
     tb_clear();
     tb_print(0, 0, 0, 0, "Enter room name to join: ");
     tb_present();
 
-    char buffer[256];
     const coordinates_t coordinates = { 0, 25 };
-
-    if (terminal_read_string(coordinates, buffer) == READ_CANCELLED || strlen(buffer) == 0) {
-        return NULL;
-    }
-
-    char* copy = malloc(strlen(buffer) + 1);
-    strcpy(copy, buffer);
-    return copy;
+    return terminal_read_string(coordinates, out_room_name) != READ_CANCELLED && strlen(out_room_name) > 0;
 }
 
-void connect_menu_free_result(char* result) {
-    free(result);
+bool connect_menu_remote(char* out_hostname, unsigned short* out_port) {
+    tb_clear();
+    tb_print(0, 0, 0, 0, "Enter hostname: ");
+    tb_present();
+
+    coordinates_t coordinates = { 0, 16 };
+    if (terminal_read_hostname(coordinates, out_hostname) == READ_CANCELLED || strlen(out_hostname) == 0) {
+        return false;
+    }
+
+    coordinates.row_ = 1;
+    coordinates.column_ = 12;
+    terminal_read_result_t result;
+
+    do {
+        tb_clear();
+        tb_printf(0, 0, 0, 0, "Hostname: %s", out_hostname);
+        tb_print(0, 1, 0, 0, "Enter port: ");
+        tb_present();
+
+        result = terminal_read_port(coordinates, out_port);
+
+        if (result == READ_INVALID) {
+            terminal_show_error("Invalid port.");
+        }
+    } while (result == READ_INVALID);
+
+    return result != READ_CANCELLED && result != READ_EMPTY;
 }

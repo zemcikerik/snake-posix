@@ -50,10 +50,32 @@ bool server_init(server_t* self, const game_settings_t* game_settings) {
 
     game_state_init(self->game_state_, template);
     map_loader_free_template(template);
+
+    if (game_settings->port_ != SETTING_NO_PORT) {
+        socket_t socket;
+
+        if (!socket_init_listen(&socket, game_settings->port_)) {
+            fprintf(stderr, "Failed to listen on socket %hu\n", game_settings->port_);
+            self->connection_handler_ = NULL;
+            server_destroy(self);
+            return false;
+        }
+
+        self->connection_handler_ = malloc(sizeof(client_connection_handler_t));
+        client_connection_handler_init(self->connection_handler_, self->game_state_, socket);
+    } else {
+        self->connection_handler_ = NULL;
+    }
+
     return true;
 }
 
 void server_destroy(server_t* self) {
+    if (self->connection_handler_ != NULL) {
+        client_connection_handler_destroy(self->connection_handler_);
+        free(self->connection_handler_);
+    }
+
     game_state_destroy(self->game_state_);
     server_destroy_game_state_memory(self);
 }
@@ -272,4 +294,5 @@ bool server_tick(server_t* self) {
 
 void server_end_game(server_t* self) {
     self->game_state_->game_ended_ = true;
+    ticker_tick(&self->game_state_->ticker_);
 }

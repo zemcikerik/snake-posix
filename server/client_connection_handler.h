@@ -14,9 +14,9 @@ typedef struct client_connection_handler_t {
     size_t connections_capacity_;
     socket_t socket_;
     atomic_bool shutdown_;
-} client_connection_acceptor_t;
+} client_connection_handler_t;
 
-void client_connection_handler_init(client_connection_acceptor_t* self, game_state_t* game_state, socket_t socket);
-void client_connection_handler_destroy(client_connection_acceptor_t* self);
+void client_connection_handler_init(client_connection_handler_t* self, game_state_t* game_state, socket_t socket);
+void client_connection_handler_destroy(client_connection_handler_t* self);
 
 #endif

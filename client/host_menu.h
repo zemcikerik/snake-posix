@@ -4,8 +4,8 @@
 #include "../libsnake/game_settings.h"
 
 typedef enum host_menu_options_t {
-    HOST_MENU_PROMPT_FOR_ROOM_NAME,
-    HOST_MENU_PRIVATE_ROOM_NAME,
+    HOST_MENU_PUBLIC,
+    HOST_MENU_PRIVATE,
 } host_menu_options_t;
 
 game_settings_t* host_menu(host_menu_options_t options);

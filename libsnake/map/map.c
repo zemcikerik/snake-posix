@@ -21,6 +21,8 @@ void map_init_from_template(map_t* self, const map_template_t* template) {
         for (coordinate_t j = 0; j < self->width_; ++j) {
             const coordinates_t coordinates = { i, j };
             self->tiles_[i][j].type_ = map_template_has_wall(template, coordinates) ? TILE_WALL : TILE_EMPTY;
+            self->tiles_[i][j].order_ = 0;
+            self->tiles_[i][j].player_ = 0;
         }
     }
 }
@@ -35,6 +37,10 @@ coordinate_t map_get_height(const map_t* self) {
 
 map_tile_t map_get_tile_state(const map_t* self, const coordinates_t coordinates) {
     return self->tiles_[coordinates.row_][coordinates.column_];
+}
+
+void map_set_tile_state(map_t* self, const coordinates_t coordinates, const map_tile_t tile) {
+    self->tiles_[coordinates.row_][coordinates.column_] = tile;
 }
 
 bool map_is_tile_empty(const map_t* self, const coordinates_t coordinates) {

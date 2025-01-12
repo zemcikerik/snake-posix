@@ -24,13 +24,13 @@ game_settings_t* host_menu(const host_menu_options_t options) {
     coordinates.row_ = x;   \
     coordinates.column_ = y;   \
 
-    if (options == HOST_MENU_PROMPT_FOR_ROOM_NAME) {
+    if (options == HOST_MENU_PUBLIC) {
         tb_clear();
-        tb_print(0, 0, 0, 0, "Enter room name to create: ");
+        tb_print(0, 0, 0, 0, "Enter room name (blank to disable local access): ");
         tb_present();
 
-        SET_READ_COORDS(0, 27);
-        if (terminal_read_string(coordinates, buffer) == READ_CANCELLED || strlen(buffer) == 0) {
+        SET_READ_COORDS(0, 49);
+        if (terminal_read_string(coordinates, buffer) == READ_CANCELLED) {
             return NULL;
         }
     } else {
@@ -38,17 +38,64 @@ game_settings_t* host_menu(const host_menu_options_t options) {
         sprintf(buffer, "--private_%d_%d", ids[0], ids[1]);
     }
 
-    char* room_name = malloc(strlen(buffer) + 1);
-    strcpy(room_name, buffer);
+    char* room_name = NULL;
+    unsigned short port = SETTING_NO_PORT;
+
+    if (strlen(buffer) > 0) {
+        room_name = malloc(strlen(buffer) + 1);
+        strcpy(room_name, buffer);
+    }
+
+#define PRINT_ROOM_NAME() if (room_name != NULL) tb_printf(0, 0, 0, 0, "Room name: %s", room_name)
+#define ROOM_NAME_OFFSET (room_name != NULL ? 1 : 0)
+
+    if (options == HOST_MENU_PUBLIC) {
+        terminal_read_result_t result;
+
+        do {
+            tb_clear();
+            PRINT_ROOM_NAME();
+            tb_print(0, ROOM_NAME_OFFSET, 0, 0, "Enter port (blank to disable remote access): ");
+            tb_present();
+
+            SET_READ_COORDS(ROOM_NAME_OFFSET, 45);
+            result = terminal_read_port(coordinates, &port);
+
+            if (result == READ_INVALID) {
+                terminal_show_error("Invalid port.");
+            }
+        } while (result == READ_INVALID);
+
+        if (result == READ_CANCELLED) {
+            if (room_name != NULL) {
+                free(room_name);
+            }
+            return NULL;
+        }
+        if (result == READ_EMPTY) {
+            port = SETTING_NO_PORT;
+        }
+    }
+
+#define PRINT_PORT() if (port != SETTING_NO_PORT) tb_printf(0, ROOM_NAME_OFFSET, 0, 0, "Port: %hu", port)
+#define PORT_OFFSET (port != SETTING_NO_PORT ? 1 : 0)
+
+    if (room_name == NULL && port == SETTING_NO_PORT) {
+        terminal_show_error("At least one access method has to be defined!");
+        return NULL;
+    }
 
     tb_clear();
-    tb_printf(0, 0, 0, 0, "Room name: %s", room_name);
-    tb_print(0, 1, 0, 0, "Enter path to map (empty for blank map): ");
+    PRINT_ROOM_NAME();
+    PRINT_PORT();
+    tb_print(0, ROOM_NAME_OFFSET + PORT_OFFSET, 0, 0, "Enter path to map (empty for blank map): ");
     tb_present();
 
-    SET_READ_COORDS(1, 41);
+    SET_READ_COORDS(ROOM_NAME_OFFSET + PORT_OFFSET, 41);
     if (terminal_read_string(coordinates, buffer) == READ_CANCELLED) {
-        free(room_name);
+        if (room_name != NULL) {
+            free(room_name);
+        }
         return NULL;
     }
 
@@ -63,13 +110,16 @@ game_settings_t* host_menu(const host_menu_options_t options) {
         sprintf(buffer, "Map width (min = %d, max = %d): ", MIN_MAP_WIDTH, MAX_MAP_WIDTH);
 
         tb_clear();
-        tb_printf(0, 0, 0, 0, "Room name: %s", room_name);
-        tb_print(0, 1, 0, 0, buffer);
+        PRINT_ROOM_NAME();
+        PRINT_PORT();
+        tb_print(0, ROOM_NAME_OFFSET + PORT_OFFSET, 0, 0, buffer);
         tb_present();
 
-        SET_READ_COORDS(1, strlen(buffer));
+        SET_READ_COORDS(ROOM_NAME_OFFSET + PORT_OFFSET, strlen(buffer));
         if (terminal_read_coordinate(coordinates, &width) == READ_CANCELLED) {
-            free(room_name);
+            if (room_name != NULL) {
+                free(room_name);
+            }
             return NULL;
         }
         width = host_menu_clamp_coordinate(MIN_MAP_WIDTH, width, MAX_MAP_WIDTH);
@@ -77,14 +127,17 @@ game_settings_t* host_menu(const host_menu_options_t options) {
         sprintf(buffer, "Map height (min = %d, max = %d): ", MIN_MAP_HEIGHT, MAX_MAP_HEIGHT);
 
         tb_clear();
-        tb_printf(0, 0, 0, 0, "Room name: %s", room_name);
-        tb_printf(0, 1, 0, 0, "Width: %d", width);
-        tb_print(0, 2, 0, 0, buffer);
+        PRINT_ROOM_NAME();
+        PRINT_PORT();
+        tb_printf(0, ROOM_NAME_OFFSET + PORT_OFFSET, 0, 0, "Width: %d", width);
+        tb_print(0, 1 + ROOM_NAME_OFFSET + PORT_OFFSET, 0, 0, buffer);
         tb_present();
 
-        SET_READ_COORDS(2, strlen(buffer));
+        SET_READ_COORDS(1 + ROOM_NAME_OFFSET + PORT_OFFSET, strlen(buffer));
         if (terminal_read_coordinate(coordinates, &height) == READ_CANCELLED) {
-            free(room_name);
+            if (room_name != NULL) {
+                free(room_name);
+            }
             return NULL;
         }
         height = host_menu_clamp_coordinate(MIN_MAP_HEIGHT, height, MAX_MAP_HEIGHT);
@@ -95,6 +148,7 @@ game_settings_t* host_menu(const host_menu_options_t options) {
     settings->map_path_ = map_path;
     settings->width_ = width;
     settings->height_ = height;
+    settings->port_ = port;
     return settings;
 }
 

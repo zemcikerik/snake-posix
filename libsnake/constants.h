@@ -16,5 +16,9 @@
 #define SHM_NAME_FORMAT "/shm-zemcik-snake-%s"
 
 #define SIG_LAUNCHED SIGUSR1
+#define SIG_DESTROYED SIGUSR2
+
+#define GAME_MAGIC_BYTES_INITIALIZER { 42, 37, 13, 31 };
+#define GAME_MAGIC_BYTES_CORRECT(bytes) (bytes[0] == 42 && bytes[1] == 37 && bytes[2] == 13 && bytes[3] == 31)
 
 #endif
