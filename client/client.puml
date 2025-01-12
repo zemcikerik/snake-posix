@@ -76,7 +76,7 @@ struct shm_client_input_context_t {
 + map_: syn_map_t*
 + renderer_: renderer_t*
 }
-note bottom of shm_client_input_context_t: Associations omitted for brievity
+note bottom of shm_client_input_context_t: Associations omitted for brevity
 
 class shm_client_t {
 {static} + shm_client_run(room_name: const char*): void
@@ -112,7 +112,7 @@ struct socket_client_input_context_t {
 + map_: syn_map_t*
 + <<atomic>> last_status_: player_status_t*
 }
-note bottom of socket_client_input_context_t: Associations omitted for brievity
+note bottom of socket_client_input_context_t: Associations omitted for brevity
 
 class socket_t
 struct socket_message_t
