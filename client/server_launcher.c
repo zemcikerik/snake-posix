@@ -65,7 +65,7 @@ bool server_launcher_launch_server_process(game_settings_t* settings) {
         exit(EXIT_FAILURE);
     }
 
-    sleep(3);
+    sleep(CLIENT_WAIT_FOR_SERVER_SECONDS);
 
     if (launched_signal_received) {
         return true;
