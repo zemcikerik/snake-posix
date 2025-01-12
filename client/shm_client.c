@@ -153,5 +153,4 @@ void shm_client_run(const char* room_name) {
 
     shm_game_state_close(&game_state);
     terminal_show_info(exit ? "Game exited." : "Game ended.");
-
 }

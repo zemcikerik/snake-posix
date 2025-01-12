@@ -7,7 +7,7 @@
 void socket_message_init_magic_bytes(socket_message_t* self, const char* magic_bytes) {
     self->type_ = SOCKET_MESSAGE_MAGIC_BYTES;
     self->data_.magic_bytes_ = malloc(sizeof(socket_message_magic_bytes_data_t));
-    memcpy(self->data_.magic_bytes_->bytes, magic_bytes, sizeof(char[4]));
+    memcpy(self->data_.magic_bytes_->bytes_, magic_bytes, sizeof(char[4]));
 }
 
 void socket_message_init_game_full(socket_message_t* self) {
@@ -110,13 +110,7 @@ size_t socket_message_calculate_data_buffer_size(const socket_message_t* self) {
 }
 
 void socket_message_serialize_magic_bytes(const socket_message_magic_bytes_data_t* data, char* buffer) {
-    memcpy(buffer, data->bytes, 4);
-}
-
-void socket_message_serialize_connected(const socket_message_connected_data_t* data, char* buffer) {
-    const uint16_t player_id_reordered = htole16(data->player_id_);
-    memcpy(buffer, &player_id_reordered, sizeof(uint16_t));
-    buffer[sizeof(uint16_t)] = (char) data->direction_;
+    memcpy(buffer, data->bytes_, 4);
 }
 
 #define COPY_AND_MOVE_PTR(name)   \
@@ -203,7 +197,7 @@ bool socket_message_serialize_to_socket(const socket_message_t* self, socket_t* 
 bool socket_message_deserialize_magic_bytes_from_socket(socket_t* socket, socket_message_data_t* out_data) {
     socket_message_magic_bytes_data_t* data = malloc(sizeof(socket_message_magic_bytes_data_t));
 
-    if (!socket_read(socket, data->bytes, 4)) {
+    if (!socket_read(socket, data->bytes_, 4)) {
         free(data);
         return false;
     }

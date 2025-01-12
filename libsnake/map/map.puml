@@ -40,7 +40,6 @@ class map_t {
 {static} + map_init_from_template(self: map_t*, template: const map_template_t*): void
 {static} + map_get_width(self: const map_t*): coordinate_t
 {static} + map_get_height(self: const map_t*): coordinate_t
-{static} + map_get_tile_state(self: const map_t*, coordinates: coordinates_t): map_tile_t
 {static} + map_is_tile_empty(self: const map_t*, coordinates: coordinates_t): bool
 {static} + map_is_tile_dead(self: const map_t*, coordinates: coordinates_t): bool
 {static} + map_set_tile_empty(self: map_t*, coordinates: coordinates_t): void
@@ -48,6 +47,8 @@ class map_t {
 {static} + map_set_tile_fruit(self: map_t*, coordinates: coordinates_t): void
 {static} + map_set_tile_wall(self: map_t*, coordinates: coordinates_t): void
 {static} + map_set_tile_dead(self: map_t*, coordinates: coordinates_t): void
+{static} + map_get_tile_state(self: const map_t*, coordinates: coordinates_t): map_tile_t
+{static} + map_set_tile_state(self: const map_t*, coordinates: coordinates_t, tile: map_tile_t): void
 {static} + map_mark_player_as_dead(self: map_t*, player: player_id_t, start_coordinates: coordinates_t): void
 {static} + map_move_in_direction(self: const map_t*, coordinates: coordinates_t, direction: direction_t): coordinates_t
 {static} + map_find_player_neighbor_with_lowest_order(self: const map_t*, player: player_id_t,coordinates: coordinates_t, out_coordinates: coordinates_t*): bool

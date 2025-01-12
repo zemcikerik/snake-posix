@@ -9,7 +9,7 @@ bool client_connection_handler_verify_magic_bytes(socket_t* socket) {
         return false;
     }
 
-    const bool result = message.type_ == SOCKET_MESSAGE_MAGIC_BYTES && GAME_MAGIC_BYTES_CORRECT(message.data_.magic_bytes_->bytes);
+    const bool result = message.type_ == SOCKET_MESSAGE_MAGIC_BYTES && GAME_MAGIC_BYTES_CORRECT(message.data_.magic_bytes_->bytes_);
     socket_message_destroy(&message);
     return result;
 }

@@ -41,6 +41,8 @@ changelog_t *-- change_t
 class syn_T<T>
 
 class syn_changelog_t {
+{static} + syn_changelog_copy(self: syn_changelog_t*, out_size: size_t*): change_t*
+{static} + syn_changelog_free_copy(changes: change_t*): void
 {static} + syn_changelog_for_each_copy(self: syn_changelog_t*, for_each_fn: syn_changelog_for_each_fn, ctx: void*): void
 }
 syn_changelog_t --|> syn_T

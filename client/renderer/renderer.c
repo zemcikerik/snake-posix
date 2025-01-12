@@ -24,7 +24,6 @@ char renderer_get_tile_character(const map_tile_type_t type) {
     }
 }
 
-
 void renderer_update_tile(const coordinate_t row, const coordinate_t column, const map_tile_t tile) {
     const char character = renderer_get_tile_character(tile.type_);
     const uintattr_t color = tile.type_ == TILE_PLAYER

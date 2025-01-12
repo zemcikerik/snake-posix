@@ -37,6 +37,7 @@ struct game_settings_t {
 + width_: coordinate_t
 + height_: coordinate_t
 + parent_: pid_t
++ port_: in_port_t
 }
 
 class syn_changelog_t
@@ -108,8 +109,27 @@ class ticker_observer_t {
 ticker_observer_t --> ticker_t
 ticker_observer_t ..> ticker_t : <<friend>>
 
+struct queue_T_node_t<T> {
++ item_: T
++ next_: queue_T_node_t*
+}
+
+class queue_T<T> {
+- head_: queue_T_node_t*
+- tail_: queue_T_node_t*
+
+{static} + queue_T_init(self: queue_T*): void
+{static} + queue_T_destroy(self: queue_T*): void
+{static} + queue_T_push(self: queue_T*, item: const T*): void
+{static} + queue_T_pop(self: queue_T*, out_item: T*): bool
+{static} + queue_T_clear(self: queue_T*): void
+{static} + queue_T_is_empty(self: const queue_T*): bool
+}
+queue_T *-- queue_T_node_t
+
 direction_t -[hidden]- coordinates_t
 coordinates_t -[hidden]- game_settings_t
 rng_t -[hidden]- syn_helpers_t
+game_state_t -[hidden]- queue_T_node_t
 
 @enduml

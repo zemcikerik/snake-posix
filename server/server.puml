@@ -37,16 +37,68 @@ class player_data_cache_t {
 player_data_cache_t *-- coordinates_t
 
 struct game_settings_t
+struct game_state_t
+class socket_t
 class shm_game_state_t
+class syn_changelog_t
+class player_manager_t
+struct socket_message_t
+class ticker_observer_t
+
+class client_connection_t {
+- receive_thread_: pthread_t
+- send_thread_: pthread_t
+- game_state_: game_state_t*
+- player_id_: player_id_t
+- socket_: socket_t
+- shutdown_: atomic_bool
+
+{static} + client_connection_init(self: client_connection_t*, socket: socket_t, game_state: game_state_t*): void
+{static} + client_connection_destroy(self: client_connection_t*): void
+{static} - client_connection_listen_for_signal(): void
+{static} - client_connection_shutdown(self: client_connection_t*): void
+{static} - client_connection_send_map(self: client_connection_t*): bool
+{static} - client_connection_send_changelog(self: client_connection_t*): bool
+{static} - client_connection_send_thread_main(arg: void*): void*
+{static} - client_connection_receive_thread_main(args: void*): void*
+}
+client_connection_t *-- socket_t
+client_connection_t --> game_state_t
+client_connection_t ..> syn_changelog_t : <<uses>>
+client_connection_t ..> player_manager_t : <<uses>>
+client_connection_t ..> socket_message_t : <<uses>>
+client_connection_t ..> ticker_observer_t : <<uses>>
+
+class client_connection_handler_t {
+- thread_: pthread_t
+- game_state_: game_state_t*
+- connections_: client_connection_t*
+- connections_size_: size_t
+- connections_capacity_: size_t
+- socket_: socket_t
+- shutdown_: atomic_bool
+
+{static} + client_connection_handler_init(self: client_connection_handler_t*, game_state: game_state_t*, socket: socket_t): void
+{static} + client_connection_handler_destroy(self: client_connection_handler_t*): void
+{static} - client_connection_handler_verify_magic_bytes(socket: socket_t*): bool
+{static} - client_connection_handler_main(arg: void*): void*
+}
+client_connection_handler_t --> game_state_t
+client_connection_handler_t *-- socket_t
+client_connection_handler_t *-- client_connection_t
+client_connection_handler_t ..> socket_message_t : <<uses>>
 
 class server_t {
-- shm_game_state_: shm_game_state_t
+- game_state_t: game_state_t*
+- shm_game_state_: shm_game_state_t*
+- connection_handler_: client_connection_handler_t*
 - player_data_cache_: player_data_cache_t
 
 {static} + server_init(self: server_t*, game_settings: const game_settings_t*): bool
 {static} + server_destroy(self: server_t*): void
 {static} + server_tick(self: server_t*): bool
 {static} + server_end_game(self: server_t*): void
+{static} - server_destroy_game_state_memory(self: server_t*): void
 {static} - move_player_head(data: process_player_data_t*, player_id: player_id_t, next_head: coordinates_t): void
 {static} - move_player_tail(data: process_player_data_t*, player_id: player_id_t): void
 {static} - kill_player(data: process_player_data_t*, player_id: player_id_t, player: player_t*): void
@@ -57,9 +109,13 @@ class server_t {
 {static} - is_player_paused(manager: player_manager_t*, player: player_id_t): bool
 {static} - server_tick_process_player(manager: player_manager_t*, player_id: player_id_t, player: player_t*, ctx: void*): void
 }
+server_t ..> map_template_t : <<uses>>
 server_t ..> game_settings_t : <<uses>>
+server_t ..> socket_t : <<uses>>
 server_t *-- player_data_cache_t
+server_t *-- game_state_t
 server_t *-- shm_game_state_t
+server_t *-- client_connection_handler_t
 
 class changelog_t
 class map_t
@@ -76,7 +132,5 @@ process_player_data_t --> changelog_t
 process_player_data_t --> map_t
 process_player_data_t --> player_data_cache_t
 server_t ..> process_player_data_t : <<uses>>
-
-
 
 @enduml

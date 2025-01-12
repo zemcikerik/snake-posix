@@ -80,8 +80,8 @@ bool client_connection_send_player_state(client_connection_t* self, const player
     return result;
 }
 
-void* client_connection_send_thread_main(void* arg) {
-    client_connection_t* self = arg;
+void* client_connection_send_thread_main(void* args) {
+    client_connection_t* self = args;
     client_connection_listen_for_signal();
 
     if (!player_manager_register(&self->game_state_->player_manager_, &self->player_id_)) {

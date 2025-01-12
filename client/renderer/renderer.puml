@@ -1,0 +1,64 @@
+@startuml
+
+skinparam ranksep 50
+skinparam linetype ortho
+
+enum renderer_command_type_t {
++ RENDERER_COMMAND_REDRAW
++ RENDERER_COMMAND_UPDATE
+}
+
+class syn_map_t
+
+struct renderer_command_redraw_data_t {
++ map_: syn_map_t*
++ status_: player_status_t:
+}
+renderer_command_redraw_data_t --> syn_map_t
+
+struct map_tile_t
+
+struct renderer_command_update_data_t {
++ row_: coordinate_t
++ column_: coordinate_t
++ tile_: map_tile_t
+}
+renderer_command_update_data_t *-- map_tile_t
+
+struct renderer_command_data_t <<union>> {
++ redraw_: renderer_command_redraw_data_t
++ update_: renderer_command_update_data_t
+}
+renderer_command_data_t *-- renderer_command_redraw_data_t
+renderer_command_data_t *-- renderer_command_update_data_t
+
+struct renderer_command_t {
++ type_: renderer_command_type_t
++ data_: renderer_command_data_t
+}
+renderer_command_t *-- renderer_command_data_t
+
+class queue_T<T>
+class queue_renderer_command_t
+queue_T <|-- queue_renderer_command_t
+
+class renderer_t {
+- thread_: pthread_t
+- queue_mutex_: pthread_mutex_t
+- queue_cond_: pthread_cond_t
+- queue_: queue_renderer_command_t
+- shutdown_: atomic_bool
+{static} - FOREGROUND_COLORS: uintattr_t[FOREGROUND_COLORS_LENGTH]
+
+{static} + renderer_init(self: renderer_t*): void
+{static} + renderer_destroy(self: renderer_t*): void
+{static} + renderer_redraw(self: renderer_t*, map: syn_map_t*, status: player_status_t): void
+{static} + renderer_update(self: renderer_t*, row: coordinate_t, column: coordinate_t, tile: map_tile_t): void
+{static} - renderer_get_tile_character(type: map_tile_type_t): char
+{static} - renderer_redraw_screen(syn_map: syn_map_t*, status: player_status_t): void
+{static} - renderer_main(arg: void*): void*
+}
+renderer_t *-- queue_renderer_command_t
+renderer_t *-- renderer_command_t
+
+@enduml

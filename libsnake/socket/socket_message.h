@@ -21,13 +21,8 @@ typedef enum socket_message_type_t {
 } socket_message_type_t;
 
 typedef struct socket_message_magic_bytes_data_t {
-  char bytes[4];
+  char bytes_[4];
 } socket_message_magic_bytes_data_t;
-
-typedef struct socket_message_connected_data_t {
-  player_id_t player_id_;
-  direction_t direction_;
-} socket_message_connected_data_t;
 
 typedef struct socket_message_map_data_t {
   coordinate_t width_;
